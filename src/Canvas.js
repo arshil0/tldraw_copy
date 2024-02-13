@@ -49,7 +49,7 @@ function Canvas(){
             //ctx.beginPath();
             //ctx.moveTo(coords[0],coords[1]);
             //ctx.lineTo(coords[2], coords[3]);
-            ctx.fillRect(coords[0], coords[1], coords[2] - coords[0], coords[3] - coords[1])
+            ctx.strokeRect(coords[0], coords[1], coords[2] - coords[0], coords[3] - coords[1])
             ctx.stroke();
         })
         

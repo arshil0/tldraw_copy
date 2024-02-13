@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import Canvas from "./t.js";
+import Canvas from "./Canvas.js";
 
 //<canvas id = "canvas" width="600" height="600"></canvas>
 
