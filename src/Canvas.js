@@ -57,7 +57,6 @@ function Canvas(){
     window.addEventListener("mousemove", event => {
         if(!toolActivated) return
         if(tool == "pen"){
-            updateCanvas(updateC + 1);
             let line = objects[objects.length - 1];
             line[2] = event.clientX;
             line[3] = event.clientY;
@@ -72,10 +71,11 @@ function Canvas(){
                     objects.splice(i, 1);
                     break;
                 }
-                updateCanvas(updateC + 1);
+                
                 i++;
             }
         }
+        updateCanvas(updateC + 1);
     })
 
     useLayoutEffect(() => {
