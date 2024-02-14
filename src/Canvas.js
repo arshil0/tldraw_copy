@@ -1,24 +1,34 @@
 import { useState, useLayoutEffect } from "react";
+import {} from"./DrawObject.js"
 
-var objects = [[0,0,50,50], [50,50, 90,50], [150,30, 60, 85]]
-
-var draw = false;
-var erase = false;
+var objects = [] //list of drawn objects
 var mouse_pos = [];
 let initial_pos = [];
 
+/* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    pen: used for drawing
+    eraser: used for deleting
+*/
+let tool = "pen"; //current tool
+let toolActivated = false; //if tool is activated (holding down left click)
+
+export function setTool(newTool){
+    tool = newTool;
+}
+
+//update the state of the tool
 function updateState(event){
     if(event.button === 0){
-        draw = !draw;
-        if(!draw){
-            objects[objects.length - 1] = updateObjectCoords(objects[objects.length-1])
+        toolActivated = !toolActivated
+        if(tool === "pen"){
+            if(!toolActivated){
+                objects[objects.length - 1] = updateObjectCoords(objects[objects.length-1])
+            }
         }
-    }
-    else if(event.button === 2){
-        erase = !erase;
     }
 }
 
+//update coordinates of an object so that: x1,y1 = top left corner of bounding box,     x2,y2 = bottom right corner of bounding box
 function updateObjectCoords(objectPosition){
     let x1 = Math.min(objectPosition[0], objectPosition[2]); //up left x coordinate
     let y1 = Math.min(objectPosition[1], objectPosition[3]); //up left y coordinate (y value increases as it goes down)
@@ -28,7 +38,8 @@ function updateObjectCoords(objectPosition){
 }
 
 window.addEventListener("mousedown", event =>{
-    objects.push([event.clientX, event.clientY,event.clientX, event.clientY]);
+    if(tool == "pen")
+        objects.push([event.clientX, event.clientY,event.clientX, event.clientY]);
     updateState(event);
 })
 
@@ -40,18 +51,18 @@ window.addEventListener("contextmenu", e => e.preventDefault());
 
 function Canvas(){
 
-    const width = 60;
     const [updateC, updateCanvas] = useState(0);
 
 
     window.addEventListener("mousemove", event => {
-        if(draw){
+        if(!toolActivated) return
+        if(tool == "pen"){
             updateCanvas(updateC + 1);
             let line = objects[objects.length - 1];
             line[2] = event.clientX;
             line[3] = event.clientY;
         };
-        if(erase){
+        if(tool == "eraser"){
             let x = event.clientX;
             let y = event.clientY;
             let i = 0
