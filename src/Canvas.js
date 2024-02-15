@@ -17,9 +17,9 @@ export function setTool(newTool){
 }
 
 //update the state of the tool
-function updateState(event){
+function updateState(event, activate = false){
     if(event.button === 0){
-        toolActivated = !toolActivated
+        toolActivated = activate
         if(!toolActivated){
             if(tool === "rectangle"){
                 objects[objects.length - 1] = updateObjectCoords(objects[objects.length-1])
@@ -56,11 +56,11 @@ window.addEventListener("mousedown", event =>{
             if(isInShape(x,y,objectPos)) indexOfTemporaryObjects.push(index)
         })
     }
-    updateState(event);
+    updateState(event, true);
 })
 
 window.addEventListener("mouseup", event => {
-    updateState(event)
+    updateState(event, false)
 })
 
 window.addEventListener("contextmenu", e => e.preventDefault());
