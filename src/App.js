@@ -8,12 +8,14 @@ import ToolBar from "./ToolBar.js";
 const toolList = {
   pen: {
     name: "rectangle",
-    id: 1
   },
 
   eraser: {
     name: "eraser",
-    id: 2
+  },
+
+  drag: {
+    name: "drag",
   }
 }
 

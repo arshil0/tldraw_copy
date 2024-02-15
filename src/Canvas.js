@@ -1,9 +1,9 @@
 import { useState, useLayoutEffect } from "react";
 import {} from"./DrawObject.js"
 
-var objects = [] //list of drawn objects
-var mouse_pos = [];
-let initial_pos = [];
+var objects = []; //list of drawn objects
+var indexOfTemporaryObjects = []; //list of indexes of objects currently being adjusted (draggin, resizing, etc..)
+var last_mouse_pos = []; //the position of the mouse before moving the cursor (used for updating movement)
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     pen: used for drawing
@@ -20,9 +20,12 @@ export function setTool(newTool){
 function updateState(event){
     if(event.button === 0){
         toolActivated = !toolActivated
-        if(tool === "rectangle"){
-            if(!toolActivated){
+        if(!toolActivated){
+            if(tool === "rectangle"){
                 objects[objects.length - 1] = updateObjectCoords(objects[objects.length-1])
+            }
+            else if(tool === "drag"){
+                indexOfTemporaryObjects = [];
             }
         }
     }
@@ -37,9 +40,22 @@ function updateObjectCoords(objectPosition){
     return [x1,y1,x2,y2];
 }
 
+//given a position and shape information, checks if the given position is inside the shape
+function isInShape(x, y, shapePosition){
+    return x >= shapePosition[0] && x <= shapePosition[2] && y >= shapePosition[1] && y <= shapePosition[3]
+}
+
 window.addEventListener("mousedown", event =>{
     if(tool == "rectangle")
         objects.push([event.clientX, event.clientY,event.clientX, event.clientY]);
+    else if(tool == "drag"){
+        objects.forEach((objectPos,index) =>{
+            let x = event.clientX;
+            let y = event.clientY;
+            last_mouse_pos = [event.clientX, event.clientY];
+            if(isInShape(x,y,objectPos)) indexOfTemporaryObjects.push(index)
+        })
+    }
     updateState(event);
 })
 
@@ -56,18 +72,18 @@ function Canvas(){
 
     window.addEventListener("mousemove", event => {
         if(!toolActivated) return
-        if(tool == "rectangle"){
+        let x = event.clientX; //current x position of the cursor
+        let y = event.clientY; //current y position of the cursor
+        if(tool === "rectangle"){
             let line = objects[objects.length - 1];
             line[2] = event.clientX;
             line[3] = event.clientY;
-        };
-        if(tool == "eraser"){
-            let x = event.clientX;
-            let y = event.clientY;
+        }
+        else if(tool === "eraser"){
             let i = 0
             while(i < objects.length){
                 let pos = objects[i];
-                if(x >= pos[0] && x <= pos[2] && y >= pos[1] && y <= pos[3]){
+                if(isInShape(x,y,pos)){
                     objects.splice(i, 1);
                     break;
                 }
@@ -75,6 +91,16 @@ function Canvas(){
                 i++;
             }
         }
+        else if(tool === "drag"){
+            indexOfTemporaryObjects.forEach(ind =>{
+                objects[ind][0] += x - last_mouse_pos[0];
+                objects[ind][2] += x - last_mouse_pos[0];
+                objects[ind][1] += y - last_mouse_pos[1];
+                objects[ind][3] += y - last_mouse_pos[1];
+            })
+        }
+
+        last_mouse_pos = [event.clientX, event.clientY];
         updateCanvas(updateC + 1);
     })
 
