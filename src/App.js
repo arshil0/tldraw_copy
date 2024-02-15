@@ -1,10 +1,10 @@
-import logo from './logo.svg';
+import { useState } from 'react';
 import './App.css';
 import Canvas from "./Canvas.js";
 import ToolBar from "./ToolBar.js";
 
-//<canvas id = "canvas" width="600" height="600"></canvas>
 
+//<canvas id = "canvas" width="600" height="600"></canvas>
 const toolList = {
   pen: {
     name: "rectangle",
@@ -20,6 +20,7 @@ const toolList = {
 }
 
 function App() {
+
 
   return (
     <>

@@ -1,0 +1,8 @@
+.boundingBox{
+    border-style:dotted; 
+    position: absolute; 
+    pointer-events: none;
+    top: 0%;
+    left: 0%;
+    /* top: y px;   left: x px;    width:;    height:;    handled in Canvas.js */
+}

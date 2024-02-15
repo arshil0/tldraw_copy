@@ -1,16 +1,20 @@
 import { useState, useLayoutEffect } from "react";
-import {} from"./DrawObject.js"
+import BoundingBox from './boundingBox.js';
 
 var objects = []; //list of drawn objects
 var indexOfTemporaryObjects = []; //list of indexes of objects currently being adjusted (draggin, resizing, etc..)
 var last_mouse_pos = []; //the position of the mouse before moving the cursor (used for updating movement)
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    pen: used for drawing
+    rectangle: used for drawing rectangles
     eraser: used for deleting
+    drag: used for dragging objects
 */
 let tool = "rectangle"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
+
+
+let boundingBox = [-1,-1,0,0] // topLeft x, topLeft y, width, height
 
 export function setTool(newTool){
     tool = newTool;
@@ -26,6 +30,7 @@ function updateState(event, activate = false){
             }
             else if(tool === "drag"){
                 indexOfTemporaryObjects = [];
+                boundingBox = [-1,-1, 0, 0]
             }
         }
     }
@@ -69,7 +74,6 @@ function Canvas(){
 
     const [updateC, updateCanvas] = useState(0);
 
-
     window.addEventListener("mousemove", event => {
         if(!toolActivated) return
         let x = event.clientX; //current x position of the cursor
@@ -92,16 +96,28 @@ function Canvas(){
             }
         }
         else if(tool === "drag"){
+            let minx = 9999999999999;
+            let miny = 9999999999999;
+            let maxx = -1;
+            let maxy = -1;
             indexOfTemporaryObjects.forEach(ind =>{
+                //garbage code, but gets the job done!
                 objects[ind][0] += x - last_mouse_pos[0];
                 objects[ind][2] += x - last_mouse_pos[0];
                 objects[ind][1] += y - last_mouse_pos[1];
                 objects[ind][3] += y - last_mouse_pos[1];
+
+
+                if (objects[ind][0] < minx) minx = objects[ind][0]
+                if (objects[ind][1] < miny) miny = objects[ind][1]
+                if (objects[ind][2] > maxx) maxx = objects[ind][2]
+                if (objects[ind][3] > maxy) maxy = objects[ind][3]
             })
+            boundingBox = [minx - 2, miny - 2, maxx - minx, maxy - miny] //the -2 is because the offset is off for some reason, -2 fixes it
         }
 
         last_mouse_pos = [event.clientX, event.clientY];
-        updateCanvas(updateC + 1);
+        updateCanvas(1 - updateC); //to keep the number between 0 and 1, not to go up to a huge number
     })
 
     useLayoutEffect(() => {
@@ -119,7 +135,11 @@ function Canvas(){
     });
 
     return(
-        <canvas id="canvas" width={window.innerWidth} height="600"></canvas>
+        <>
+            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight}></canvas>
+            <BoundingBox x ={boundingBox[0]} y={boundingBox[1]} width={boundingBox[2]} height={boundingBox[3]}></BoundingBox>
+        </>
+        
     )
 }
 
