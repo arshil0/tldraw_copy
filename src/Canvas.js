@@ -9,7 +9,7 @@ let initial_pos = [];
     pen: used for drawing
     eraser: used for deleting
 */
-let tool = "pen"; //current tool
+let tool = "rectangle"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
 
 export function setTool(newTool){
@@ -20,7 +20,7 @@ export function setTool(newTool){
 function updateState(event){
     if(event.button === 0){
         toolActivated = !toolActivated
-        if(tool === "pen"){
+        if(tool === "rectangle"){
             if(!toolActivated){
                 objects[objects.length - 1] = updateObjectCoords(objects[objects.length-1])
             }
@@ -38,7 +38,7 @@ function updateObjectCoords(objectPosition){
 }
 
 window.addEventListener("mousedown", event =>{
-    if(tool == "pen")
+    if(tool == "rectangle")
         objects.push([event.clientX, event.clientY,event.clientX, event.clientY]);
     updateState(event);
 })
@@ -56,7 +56,7 @@ function Canvas(){
 
     window.addEventListener("mousemove", event => {
         if(!toolActivated) return
-        if(tool == "pen"){
+        if(tool == "rectangle"){
             let line = objects[objects.length - 1];
             line[2] = event.clientX;
             line[3] = event.clientY;

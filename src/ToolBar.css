@@ -1,7 +1,8 @@
 #ToolBar{
     position: absolute;
     display: flex;
-    background-color: hsl(238, 83%, 23%);
+    list-style: none;
+    background-color: hsl(238, 47%, 61%);
     color: antiquewhite;
     border-radius: 10px;
     padding: 18px;
@@ -11,5 +12,5 @@
 
 .tool{
     padding: 8px;
-    border-width: 8px;
+    margin-right: 15px;
 }

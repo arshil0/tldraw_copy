@@ -7,7 +7,7 @@ import ToolBar from "./ToolBar.js";
 
 const toolList = {
   pen: {
-    name: "pen",
+    name: "rectangle",
     id: 1
   },
 
