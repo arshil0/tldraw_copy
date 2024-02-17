@@ -30,7 +30,7 @@ function updateState(event, activate = false){
             }
             else if(tool === "drag"){
                 indexOfTemporaryObjects = [];
-                boundingBox = [-1,-1, 0, 0]
+                //boundingBox = [-1,-1, 0, 0]
             }
         }
     }
@@ -48,6 +48,23 @@ function updateObjectCoords(objectPosition){
 //given a position and shape information, checks if the given position is inside the shape
 function isInShape(x, y, shapePosition){
     return x >= shapePosition[0] && x <= shapePosition[2] && y >= shapePosition[1] && y <= shapePosition[3]
+}
+
+//when dragging or resizing an object (using the select tool), this function is called with a given state
+//STATES:    0: top left,     1: top right,     2: bottom left,     3:bottom right
+export function drag(state){
+    if(state == 0){
+        console.log("top left");
+    }
+    else if(state == 1){
+        console.log("top right");
+    }
+    else if(state == 2){
+        console.log("bottom left");
+    }
+    else if(state == 3){
+        console.log("bottom right");
+    }
 }
 
 window.addEventListener("mousedown", event =>{
@@ -102,12 +119,14 @@ function Canvas(){
             let maxy = -1;
             indexOfTemporaryObjects.forEach(ind =>{
                 //garbage code, but gets the job done!
+
+                //responsible for moving the objects
                 objects[ind][0] += x - last_mouse_pos[0];
                 objects[ind][2] += x - last_mouse_pos[0];
                 objects[ind][1] += y - last_mouse_pos[1];
                 objects[ind][3] += y - last_mouse_pos[1];
 
-
+                //responsible for the bounding box
                 if (objects[ind][0] < minx) minx = objects[ind][0]
                 if (objects[ind][1] < miny) miny = objects[ind][1]
                 if (objects[ind][2] > maxx) maxx = objects[ind][2]

@@ -6,3 +6,11 @@
     left: 0%;
     /* top: y px;   left: x px;    width:;    height:;    handled in Canvas.js */
 }
+
+.dragBox{
+    position: absolute;
+    color:blueviolet;
+    background-color: white;
+    border-style:double;
+    pointer-events: all;
+}

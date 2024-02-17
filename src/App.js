@@ -3,19 +3,21 @@ import './App.css';
 import Canvas from "./Canvas.js";
 import ToolBar from "./ToolBar.js";
 
-
-//<canvas id = "canvas" width="600" height="600"></canvas>
 const toolList = {
   pen: {
-    name: "rectangle",
+    name: "rectangle"
   },
 
   eraser: {
-    name: "eraser",
+    name: "eraser"
   },
 
   drag: {
-    name: "drag",
+    name: "drag"
+  },
+
+  select: {
+    name: "select"
   }
 }
 

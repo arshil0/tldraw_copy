@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import {setTool} from "./Canvas.js";
 
 
+//THE LIST OF TOOLS ARE DEFINED IN "App.js" !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 function ToolBar(props){
     let toolNames = [];// list of tools (dictionary), used for rendering
