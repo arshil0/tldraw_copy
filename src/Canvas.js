@@ -47,6 +47,7 @@ function updateState(event, activate = false){
                     objects[ind] = updateObjectCoords(objects[ind]);
                 })
                 tool = "select";
+                boundingBox = updateObjectCoords(boundingBox);
             }
         }
     }
