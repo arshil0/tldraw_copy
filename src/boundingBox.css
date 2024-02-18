@@ -12,5 +12,5 @@
     color:blueviolet;
     background-color: white;
     border-style:double;
-    pointer-events: all;
+    pointer-events:visible;
 }
