@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
+import * as DrawObject from "./DrawObject.js";
 
 var objects = []; //list of drawn objects
 var indexOfTemporaryObjects = []; //list of indexes of objects currently being adjusted (dragging, resizing, etc..)
@@ -13,6 +14,7 @@ var last_mouse_pos = []; //the position of the mouse before moving the cursor (u
 */
 let tool = "rectangle"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
+const drawingTools = ["rectangle"]; //a list of tools that draw something on screen
 
 
 let boundingBox = [-1,-1,0,0] // topLeft x, topLeft y, bottomRight x, bottomRight y
@@ -33,7 +35,7 @@ function updateState(event, activate = false){
         toolActivated = activate
         if(!toolActivated){
             if(tool === "rectangle"){
-                objects[objects.length - 1] = updateObjectCoords(objects[objects.length-1])
+                objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
                 indexOfTemporaryObjects = [];
@@ -42,12 +44,12 @@ function updateState(event, activate = false){
             else if(tool === "select"){
 
             }
-            else if(tool === "resize"){
+            else if(tool === "resize"){ //activated upon dragging a corner of a bounding box
                 indexOfTemporaryObjects.forEach(ind =>{
-                    objects[ind] = updateObjectCoords(objects[ind]);
+                    objects[ind].updateCoords();
                 })
                 tool = "select";
-                boundingBox = updateObjectCoords(boundingBox);
+                boundingBox = updateCoords(boundingBox);
             }
         }
     }
@@ -62,17 +64,12 @@ function resetBoundingBoxCoords(){
 }
 
 //update coordinates of an object so that: x1,y1 = top left corner of bounding box,     x2,y2 = bottom right corner of bounding box
-function updateObjectCoords(objectPosition){
+function updateCoords(objectPosition){
     let x1 = Math.min(objectPosition[0], objectPosition[2]); //up left x coordinate
     let y1 = Math.min(objectPosition[1], objectPosition[3]); //up left y coordinate (y value increases as it goes down)
     let x2 = Math.max(objectPosition[0], objectPosition[2]); //down right x coordinate
     let y2 = Math.max(objectPosition[1], objectPosition[3]); //down right y coordinate
     return [x1,y1,x2,y2];
-}
-
-//given a position and shape information, checks if the given position is inside the shape
-function isInShape(x, y, shapePosition){
-    return x >= shapePosition[0] && x <= shapePosition[2] && y >= shapePosition[1] && y <= shapePosition[3]
 }
 
 //when dragging or resizing an object (using the select tool), this function is called with a given state (called from bounding box draggable boxes)
@@ -94,15 +91,26 @@ export function resize(state){
     tool = "resize"
 }
 
+// returns a drawing object depending on the current tool (having the "rectangle" tool will return a new rectangle object)
+function returnObjectByTool(x, y){
+    switch(tool){
+        case "rectangle":
+            return new DrawObject.Rectangle(x, y);
+    }
+}
+
 window.addEventListener("mousedown", event =>{
-    if(tool === "rectangle")
-        objects.push([event.clientX, event.clientY,event.clientX, event.clientY]);
+    if(drawingTools.includes(tool)){
+        objects.push(returnObjectByTool(event.clientX, event.clientY));
+    }
+    
+        
     else if(tool === "drag"){
-        objects.forEach((objectPos,index) =>{
+        objects.forEach((object,index) =>{
             let x = event.clientX;
             let y = event.clientY;
             last_mouse_pos = [event.clientX, event.clientY];
-            if(isInShape(x,y,objectPos)) indexOfTemporaryObjects.push(index)
+            if(object.isInShape(x,y)) indexOfTemporaryObjects.push(index)
         })
     }
     else if(tool === "select"){
@@ -130,16 +138,17 @@ function Canvas(){
         let x = event.clientX; //current x position of the cursor
         let y = event.clientY; //current y position of the cursor
         if(tool === "rectangle"){
-            let line = objects[objects.length - 1];
-            line[2] = event.clientX;
-            line[3] = event.clientY;
+            let object = objects[objects.length - 1];
+            object.x2 = event.clientX;
+            object.y2 = event.clientY;
         }
         else if(tool === "eraser"){
             let i = 0
             while(i < objects.length){
-                let pos = objects[i];
-                if(isInShape(x,y,pos)){
+                let object = objects[i];
+                if(object.isInShape(x,y)){
                     objects.splice(i, 1);
+                    object = null;
                     break;
                 }
                 
@@ -151,24 +160,23 @@ function Canvas(){
                 //garbage code, but gets the job done!
 
                 //responsible for moving the objects
-                objects[ind][0] += x - last_mouse_pos[0];
-                objects[ind][2] += x - last_mouse_pos[0];
-                objects[ind][1] += y - last_mouse_pos[1];
-                objects[ind][3] += y - last_mouse_pos[1]
+                objects[ind].x1 += x - last_mouse_pos[0];
+                objects[ind].x2 += x - last_mouse_pos[0];
+                objects[ind].y1 += y - last_mouse_pos[1];
+                objects[ind].y2 += y - last_mouse_pos[1]
             })
-            boundingBox = [minx - 2, miny - 2, maxx  - 2, maxy - 2] //the -2 is because the offset is off for some reason, -2 fixes it
         }
         else if(tool === "select"){
             let i = 0
             while(i < objects.length){
-                let pos = objects[i];
-                if(isInShape(x,y,pos) && !indexOfTemporaryObjects.includes(i)){
+                let object = objects[i];
+                if(object.isInShape(x,y) && !indexOfTemporaryObjects.includes(i)){
                     indexOfTemporaryObjects.push(i)
 
-                    if (pos[0] < minx) minx = pos[0]
-                    if (pos[1] < miny) miny = pos[1]
-                    if (pos[2] > maxx) maxx = pos[2]
-                    if (pos[3] > maxy) maxy = pos[3]
+                    if (object.x1 < minx) minx = object.x1
+                    if (object.y1 < miny) miny = object.y1
+                    if (object.x2 > maxx) maxx = object.x2
+                    if (object.y2 > maxy) maxy = object.y2
                     break;
                 }
                 
@@ -180,8 +188,8 @@ function Canvas(){
         else if(tool === "resize"){
             if(dragingCoordsIndex == []) return
             indexOfTemporaryObjects.forEach(ind =>{
-                objects[ind][dragingCoordsIndex[0]] += (x - last_mouse_pos[0])
-                objects[ind][dragingCoordsIndex[1]] += (y - last_mouse_pos[1])
+                objects[ind].setCoordinateByIndex(dragingCoordsIndex[0], (x - last_mouse_pos[0]))
+                objects[ind].setCoordinateByIndex(dragingCoordsIndex[1], (y - last_mouse_pos[1]))
             })
             boundingBox[dragingCoordsIndex[0]] += x - last_mouse_pos[0];
             boundingBox[dragingCoordsIndex[1]] += y - last_mouse_pos[1];
@@ -197,11 +205,8 @@ function Canvas(){
         const ctx = canvas.getContext("2d");
         ctx.fillStyle = "green";
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
-        objects.forEach((coords) =>{
-            //ctx.beginPath();
-            //ctx.moveTo(coords[0],coords[1]);
-            //ctx.lineTo(coords[2], coords[3]);
-            ctx.strokeRect(coords[0], coords[1], coords[2] - coords[0], coords[3] - coords[1])
+        objects.forEach((object) =>{
+            object.draw(ctx)
         })
         
     });
@@ -209,7 +214,10 @@ function Canvas(){
     return(
         <>
             <canvas id="canvas" width={window.innerWidth} height={window.innerHeight}></canvas>
+            {(tool === "select" || tool === "resize") &&
             <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
+            }
+            
         </>
         
     )
