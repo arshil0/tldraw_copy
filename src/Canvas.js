@@ -1,6 +1,7 @@
 import { useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
 import * as DrawObject from "./DrawObject.js";
+import {test} from "./App.js";
 
 var objects = []; //list of drawn objects
 var indexOfTemporaryObjects = []; //list of indexes of objects currently being adjusted (dragging, resizing, etc..)
@@ -121,13 +122,13 @@ window.addEventListener("mousedown", event =>{
 })
 
 window.addEventListener("mouseup", event => {
+    test()
     updateState(event, false)
 })
 
 window.addEventListener("contextmenu", e => e.preventDefault());
 
 function Canvas(){
-
     const [updateC, updateCanvas] = useState(0);
 
     window.addEventListener("mousemove", event => {
