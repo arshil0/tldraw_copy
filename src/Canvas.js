@@ -1,7 +1,7 @@
-import { useState, useLayoutEffect } from "react";
+import {useEffect, useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
 import * as DrawObject from "./DrawObject.js";
-import {test} from "./App.js";
+import {socket} from "./App.js";
 
 var objects = []; //list of drawn objects
 var indexOfTemporaryObjects = []; //list of indexes of objects currently being adjusted (dragging, resizing, etc..)
@@ -92,9 +92,10 @@ export function resize(state){
     tool = "resize"
 }
 
+
 // returns a drawing object depending on the current tool (having the "rectangle" tool will return a new rectangle object)
-function returnObjectByTool(x, y){
-    switch(tool){
+function returnObjectByTool(x, y, currentTool = tool){
+    switch(currentTool){
         case "rectangle":
             return new DrawObject.Rectangle(x, y);
     }
@@ -122,7 +123,8 @@ window.addEventListener("mousedown", event =>{
 })
 
 window.addEventListener("mouseup", event => {
-    test()
+    if(drawingTools.includes(tool))
+        socket.emit("insertDrawing", objects[objects.length - 1])
     updateState(event, false)
 })
 
@@ -130,6 +132,15 @@ window.addEventListener("contextmenu", e => e.preventDefault());
 
 function Canvas(){
     const [updateC, updateCanvas] = useState(0);
+
+    useEffect(() =>{
+        socket.on("updateDrawings", (newObject) =>{
+            objects.push(returnObjectByTool(newObject.x1, newObject.y1, "rectangle"));
+            objects[objects.length-1].initialize(newObject.x2, newObject.y2);
+            updateCanvas(1 - updateC);
+            console.log(objects);
+        })
+    }, [socket])
 
     window.addEventListener("mousemove", event => {
         if(!toolActivated){

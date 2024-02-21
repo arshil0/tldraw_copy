@@ -13,6 +13,7 @@ class DrawObject{
     initialize(x2, y2){
         this.x2 = x2;
         this.y2 = y2;
+        this.updateCoords()
     }
 
     //update coordinates the object so that: x1,y1 = top left corner of bounding box,     x2,y2 = bottom right corner of bounding box

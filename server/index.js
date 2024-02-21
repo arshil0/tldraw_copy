@@ -20,6 +20,10 @@ io.on("connection", (socket) =>{
     socket.on("test", ()=>{
         console.log("test function called!")
     })
+
+    socket.on("insertDrawing", (object)=>{
+        socket.broadcast.emit("updateDrawings", object)
+    })
 })
 
 server.listen(3001, () => {
