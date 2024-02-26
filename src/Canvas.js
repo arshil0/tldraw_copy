@@ -1,11 +1,12 @@
 import {useEffect, useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
+import { boundingBoxOffset } from "./boundingBox.js";
 import * as DrawObject from "./DrawObject.js";
 import {socket} from "./App.js";
 
 var objects = []; //list of drawn objects
-var indexOfTemporaryObjects = []; //list of indexes of objects currently being adjusted (dragging, resizing, etc..)
-var last_mouse_pos = []; //the position of the mouse before moving the cursor (used for updating movement)
+var selectedObjects = []; //list of objects currently selected with the select tool
+var lastMousePos = []; //the position of the mouse before moving the cursor (used for updating movement)
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     rectangle: used for drawing rectangles
@@ -39,15 +40,15 @@ function updateState(event, activate = false){
                 objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
-                indexOfTemporaryObjects = [];
+                selectedObjects = [];
                 //boundingBox = [-1,-1, 0, 0]
             }
             else if(tool === "select"){
 
             }
             else if(tool === "resize"){ //activated upon dragging a corner of a bounding box
-                indexOfTemporaryObjects.forEach(ind =>{
-                    objects[ind].updateCoords();
+                selectedObjects.forEach(obj =>{
+                    obj.updateCoords();
                 })
                 tool = "select";
                 boundingBox = updateCoords(boundingBox);
@@ -111,13 +112,13 @@ window.addEventListener("mousedown", event =>{
         objects.forEach((object,index) =>{
             let x = event.clientX;
             let y = event.clientY;
-            last_mouse_pos = [event.clientX, event.clientY];
-            if(object.isInShape(x,y)) indexOfTemporaryObjects.push(index)
+            lastMousePos = [event.clientX, event.clientY];
+            if(object.isInShape(x,y)) selectedObjects.push(object)
         })
     }
     else if(tool === "select"){
         resetBoundingBoxCoords()
-        indexOfTemporaryObjects = [];
+        selectedObjects = [];
     }
     updateState(event, true);
 })
@@ -135,24 +136,24 @@ function Canvas(){
 
     useEffect(() =>{
         socket.on("updateDrawings", (newObject) =>{
-            objects.push(returnObjectByTool(newObject.x1, newObject.y1, "rectangle"));
-            objects[objects.length-1].initialize(newObject.x2, newObject.y2);
+            let obj = returnObjectByTool(newObject.x1, newObject.y1, "rectangle");
+            obj.initialize(newObject.x2, newObject.y2);
+            objects.push(obj);
             updateCanvas(1 - updateC);
-            console.log(objects);
         })
     }, [socket])
 
     window.addEventListener("mousemove", event => {
         if(!toolActivated){
-            last_mouse_pos = [event.clientX, event.clientY];
+            lastMousePos = [event.clientX, event.clientY];
             return
         } 
         let x = event.clientX; //current x position of the cursor
         let y = event.clientY; //current y position of the cursor
         if(tool === "rectangle"){
             let object = objects[objects.length - 1];
-            object.x2 = event.clientX;
-            object.y2 = event.clientY;
+            object.x2 = x;
+            object.y2 = y;
         }
         else if(tool === "eraser"){
             let i = 0
@@ -168,22 +169,22 @@ function Canvas(){
             }
         }
         else if(tool === "drag"){
-            indexOfTemporaryObjects.forEach(ind =>{
+            selectedObjects.forEach(obj =>{
                 //garbage code, but gets the job done!
 
                 //responsible for moving the objects
-                objects[ind].x1 += x - last_mouse_pos[0];
-                objects[ind].x2 += x - last_mouse_pos[0];
-                objects[ind].y1 += y - last_mouse_pos[1];
-                objects[ind].y2 += y - last_mouse_pos[1]
+                obj.x1 += x - lastMousePos[0];
+                obj.x2 += x - lastMousePos[0];
+                obj.y1 += y - lastMousePos[1];
+                obj.y2 += y - lastMousePos[1];
             })
         }
         else if(tool === "select"){
             let i = 0
             while(i < objects.length){
                 let object = objects[i];
-                if(object.isInShape(x,y) && !indexOfTemporaryObjects.includes(i)){
-                    indexOfTemporaryObjects.push(i)
+                if(object.isInShape(x,y) && !selectedObjects.includes(object)){
+                    selectedObjects.push(object)
 
                     if (object.x1 < minx) minx = object.x1
                     if (object.y1 < miny) miny = object.y1
@@ -199,16 +200,18 @@ function Canvas(){
         }
         else if(tool === "resize"){
             if(dragingCoordsIndex == []) return
-            indexOfTemporaryObjects.forEach(ind =>{
-                objects[ind].setCoordinateByIndex(dragingCoordsIndex[0], (x - last_mouse_pos[0]))
-                objects[ind].setCoordinateByIndex(dragingCoordsIndex[1], (y - last_mouse_pos[1]))
+
+
+            selectedObjects.forEach(obj =>{
+                obj.resize(dragingCoordsIndex, [lastMousePos[0], lastMousePos[1], x ,y], boundingBox)
+                //obj.setCoordinateByIndex(dragingCoordsIndex[1], (y - lastMousePos[1]), boundingBox)
             })
-            boundingBox[dragingCoordsIndex[0]] += x - last_mouse_pos[0];
-            boundingBox[dragingCoordsIndex[1]] += y - last_mouse_pos[1];
-            
+
+            boundingBox[dragingCoordsIndex[0]] += x - lastMousePos[0];
+            boundingBox[dragingCoordsIndex[1]] += y - lastMousePos[1];
         }
         
-        last_mouse_pos = [event.clientX, event.clientY];
+        lastMousePos = [x, y];
         updateCanvas(1 - updateC); //to keep the number between 0 and 1, not to go up to a huge number
     })
 

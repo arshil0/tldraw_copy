@@ -1,3 +1,5 @@
+//to start the server, open the "server" directory in the terminal and run "node index.js"
+
 const express = require("express");
 const app = express();
 const http = require("http");

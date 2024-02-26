@@ -26,8 +26,23 @@ class DrawObject{
         this.y1 = y1;
     }
 
-    //sets a coordinate point depending on an index [0: x1, 1: y1, 2: x2, 3: y2]
-    setCoordinateByIndex(index, value){
+    //gets a coordinate point depending on an index [0: x1, 1: y1, 2: x2, 3: y2]
+    getCoordinateByIndex(index){
+        switch(index){
+            case 0:
+                return this.x1;
+            case 1:
+                return this.y1;
+            case 2:
+                return this.x2;
+            case 3:
+                return this.y2;
+            default: return;
+        }
+    }
+
+    //updates a coordinate point depending on an index [0: x1, 1: y1, 2: x2, 3: y2]
+    adjustCoordinateByIndex(index, value){
         switch(index){
             case 0:
                 this.x1 += value;
@@ -45,6 +60,8 @@ class DrawObject{
         }
     }
 
+    
+
     //given a coordinate point, check if its in the current shape (abstract function)
     isInShape(x, y){
         return;
@@ -52,6 +69,11 @@ class DrawObject{
 
     //draw this object on screen (abstract function)
     draw(ctx){
+        return;
+    }
+
+    //handles resizing depending on object type (abstract function), mouseInfo: [lastMousePos.x, lastMousePos.y, currentMousePos.x, currentMousePos.y]
+    resize(dragingCoordsIndex, mouseInfo, boundingBox){
         return;
     }
 }
@@ -70,5 +92,26 @@ export class Rectangle extends DrawObject {
 
     draw(ctx){
         ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
+    }
+
+    //handles the
+    resize(dragingCoordsIndex,mouseInfo, boundingBox){
+        let dx = dragingCoordsIndex[0] // dragging coord index of x
+        let dy = dragingCoordsIndex[1] // dragging coord index of y
+
+        let bx = boundingBox[dx]; //bounding box x coordinate
+        let bw = Math.abs(bx - boundingBox[2 - dragingCoordsIndex[0]]) //bounding box x width
+        let by = boundingBox[dy]; //bounding box y coordinate
+        let bh = Math.abs(by - boundingBox[4 - dragingCoordsIndex[1]]) //bounding box y height
+
+        // there is a problem here when bw or by is close to 0
+
+        this.adjustCoordinateByIndex(dx, (1 - Math.abs(bx - this.getCoordinateByIndex(dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
+        this.adjustCoordinateByIndex(2 - dx, (1 - Math.abs(bx - this.getCoordinateByIndex(2 - dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
+            
+        
+        this.adjustCoordinateByIndex(dy, (1 - Math.abs(by - this.getCoordinateByIndex(dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
+        this.adjustCoordinateByIndex(4 - dy, (1 - Math.abs(by - this.getCoordinateByIndex(4 - dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
+            
     }
 }
