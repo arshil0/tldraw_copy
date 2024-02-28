@@ -54,7 +54,7 @@ function updateState(event, activate = false){
                 })
                 tool = "select";
                 boundingBox = updateCoords(boundingBox);
-                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
+                //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
 
             }
         }
