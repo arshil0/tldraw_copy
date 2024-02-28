@@ -141,6 +141,12 @@ function Canvas(){
             objects.push(obj);
             updateCanvas(1 - updateC);
         })
+
+        socket.on("eraseObject", (index) =>{
+            objects[index] = null;
+            objects.splice(index, 1)
+            updateCanvas(1 - updateC);
+        })
     }, [socket])
 
     window.addEventListener("mousemove", event => {
@@ -162,6 +168,7 @@ function Canvas(){
                 if(object.isInShape(x,y)){
                     objects.splice(i, 1);
                     object = null;
+                    socket.emit("eraseDrawing", i)
                     break;
                 }
                 
@@ -223,7 +230,6 @@ function Canvas(){
         objects.forEach((object) =>{
             object.draw(ctx)
         })
-        
     });
 
     return(

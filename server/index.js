@@ -24,7 +24,11 @@ io.on("connection", (socket) =>{
     })
 
     socket.on("insertDrawing", (object)=>{
-        socket.broadcast.emit("updateDrawings", object)
+        socket.broadcast.emit("updateDrawings", object);
+    })
+
+    socket.on("eraseDrawing", (index) =>{
+        socket.broadcast.emit("eraseObject", index);
     })
 })
 
