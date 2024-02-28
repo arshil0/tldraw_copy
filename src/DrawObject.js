@@ -2,11 +2,12 @@
 
 class DrawObject{
     //takes the top left corrdinates as initial parameters
-    constructor(x1, y1){
+    constructor(type, x1, y1, x2=x1, y2=y1){
+        this.type = type;
         this.x1 = x1;
         this.y1 = y1;
-        this.x2 = x1; // bottom right corner's x coordinate
-        this.y2 = y1; // bottom right corner's y coordinate
+        this.x2 = x2; // bottom right corner's x coordinate
+        this.y2 = y2; // bottom right corner's y coordinate
     }
 
     //initialize the x2 and y2 coordinates (usually called after letting go of left click)
@@ -80,8 +81,8 @@ class DrawObject{
 
 
 export class Rectangle extends DrawObject {
-    constructor(x1,y1){
-        super(x1,y1)
+    constructor(type, x1,y1, x2 = x1, y2=y1){
+        super(type, x1,y1, x2, y2)
     }
 
 

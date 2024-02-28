@@ -5,8 +5,10 @@ import * as DrawObject from "./DrawObject.js";
 import {socket} from "./App.js";
 
 var objects = []; //list of drawn objects
-var selectedObjects = []; //list of objects currently selected with the select tool
+var selectedObjects = []; //list of objects currently selected with the select or drag tool
+var selectedObjectsIndices = []; //list of indices for currently selected objects
 var lastMousePos = []; //the position of the mouse before moving the cursor (used for updating movement)
+
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     rectangle: used for drawing rectangles
@@ -40,7 +42,7 @@ function updateState(event, activate = false){
                 objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
-                selectedObjects = [];
+                resetSelectedObjects();
                 //boundingBox = [-1,-1, 0, 0]
             }
             else if(tool === "select"){
@@ -52,9 +54,23 @@ function updateState(event, activate = false){
                 })
                 tool = "select";
                 boundingBox = updateCoords(boundingBox);
+                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
+
             }
         }
     }
+}
+
+//updates the set of selected objects
+function updateSelectedObjects(object, index){
+    selectedObjects.push(object);
+    selectedObjectsIndices.push(index);
+}
+
+//deselects all objects
+function resetSelectedObjects(){
+    selectedObjects = [];
+    selectedObjectsIndices = [];
 }
 
 function resetBoundingBoxCoords(){
@@ -95,10 +111,10 @@ export function resize(state){
 
 
 // returns a drawing object depending on the current tool (having the "rectangle" tool will return a new rectangle object)
-function returnObjectByTool(x, y, currentTool = tool){
+function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y){
     switch(currentTool){
         case "rectangle":
-            return new DrawObject.Rectangle(x, y);
+            return new DrawObject.Rectangle(currentTool, x, y, x2, y2);
     }
 }
 
@@ -113,12 +129,14 @@ window.addEventListener("mousedown", event =>{
             let x = event.clientX;
             let y = event.clientY;
             lastMousePos = [event.clientX, event.clientY];
-            if(object.isInShape(x,y)) selectedObjects.push(object)
+            if(object.isInShape(x,y)){
+                updateSelectedObjects(object, index)
+            } 
         })
     }
     else if(tool === "select"){
         resetBoundingBoxCoords()
-        selectedObjects = [];
+        resetSelectedObjects();
     }
     updateState(event, true);
 })
@@ -135,9 +153,21 @@ function Canvas(){
     const [updateC, updateCanvas] = useState(0);
 
     useEffect(() =>{
+        socket.on("initializeCanvas", (canvas)=>{
+            objects = [];
+            canvas.forEach(obj =>{
+                objects.push(returnObjectByTool(obj.x1, obj.y1, obj.type, obj.x2, obj.y2));
+                updateCanvas(1 - updateC);
+            })
+        })
+
+        socket.on("requestCanvas", () =>{
+            socket.emit("sendCanvas", objects);
+        })
+
         socket.on("updateDrawings", (newObject) =>{
-            let obj = returnObjectByTool(newObject.x1, newObject.y1, "rectangle");
-            obj.initialize(newObject.x2, newObject.y2);
+            console.log("add");
+            let obj = returnObjectByTool(newObject.x1, newObject.y1, newObject.type, newObject.x2, newObject.y2); 
             objects.push(obj);
             updateCanvas(1 - updateC);
         })
@@ -147,7 +177,23 @@ function Canvas(){
             objects.splice(index, 1)
             updateCanvas(1 - updateC);
         })
+
+        socket.on("adjustObjects", (objs, indices) =>{
+            console.log("adjust");
+            indices.forEach(i =>{
+                let o = objs[i];
+                objects[i] = returnObjectByTool(o.x1, o.y1, o.type, o.x2, o.y2);
+            })
+        })
     }, [socket])
+
+    /* this function gets called over 100 times for some reason
+    window.addEventListener("visibilitychange", () => {
+        if(document.visibilityState == "visible"){
+            console.log("opened tab")
+            updateCanvas(1 - updateC);
+        }
+    }) */
 
     window.addEventListener("mousemove", event => {
         if(!toolActivated){
@@ -177,8 +223,6 @@ function Canvas(){
         }
         else if(tool === "drag"){
             selectedObjects.forEach(obj =>{
-                //garbage code, but gets the job done!
-
                 //responsible for moving the objects
                 obj.x1 += x - lastMousePos[0];
                 obj.x2 += x - lastMousePos[0];
@@ -191,7 +235,7 @@ function Canvas(){
             while(i < objects.length){
                 let object = objects[i];
                 if(object.isInShape(x,y) && !selectedObjects.includes(object)){
-                    selectedObjects.push(object)
+                    updateSelectedObjects(object, i);
 
                     if (object.x1 < minx) minx = object.x1
                     if (object.y1 < miny) miny = object.y1

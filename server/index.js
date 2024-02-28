@@ -16,8 +16,18 @@ const io = new Server(server, {
     }
 });
 
+var players = [];
+
 io.on("connection", (socket) =>{
+    players.push(socket)
     console.log("CONNECTED:", socket.id)
+    if(players.length > 1)
+        players[0].emit("requestCanvas");
+    
+
+    socket.on("sendCanvas", (canvas) =>{
+        socket.broadcast.emit("initializeCanvas", canvas);
+    })
 
     socket.on("test", ()=>{
         console.log("test function called!")
@@ -29,6 +39,16 @@ io.on("connection", (socket) =>{
 
     socket.on("eraseDrawing", (index) =>{
         socket.broadcast.emit("eraseObject", index);
+    })
+
+    //given a dictionary of (index: object) send this dictionary to adjust objects at current indices (resizing, dragging, etc..)
+    socket.on("adjustDrawings", (objects, indices) =>{
+        socket.broadcast.emit("adjustObjects", objects, indices);
+    })
+
+    socket.on("disconnect", () =>{
+        console.log("DISCONNECTED:", socket.id);
+        players.splice(players.indexOf(socket), 1);
     })
 })
 
