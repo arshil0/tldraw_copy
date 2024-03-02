@@ -90,7 +90,7 @@ function resetBoundingBoxCoords(){
     miny = 9999999999999; //top left y of bounding box
     maxx = -1; //bottom right x of bounding box
     maxy = -1; //bottom right y of bounding box
-    boundingBox = [-1,-1, 0, 0]
+    boundingBox = [-100,-100, 0, 0]
 }
 
 //update coordinates of an object so that: x1,y1 = top left corner of bounding box,     x2,y2 = bottom right corner of bounding box
@@ -276,7 +276,7 @@ function Canvas(){
                 i++;
             }
             if(minx != 9999999999999)
-                boundingBox = [minx - 2, miny - 2, maxx  - 2, maxy - 2] //the -2 is because the offset is off for some reason, -2 fixes it
+                boundingBox = [minx, miny, maxx, maxy] //the -2 is because the offset is off for some reason, -2 fixes it
         }
         else if(tool === "resize"){
             if(dragingCoordsIndex == []) return

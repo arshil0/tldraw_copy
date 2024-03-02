@@ -91,6 +91,7 @@ class DrawObject{
         
         this.adjustCoordinateByIndex(dy, (1 - Math.abs(by - this.getCoordinateByIndex(dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
         this.adjustCoordinateByIndex(4 - dy, (1 - Math.abs(by - this.getCoordinateByIndex(4 - dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
+        
     }
 }
 
