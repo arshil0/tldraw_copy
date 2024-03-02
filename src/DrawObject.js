@@ -116,13 +116,20 @@ export class Rectangle extends DrawObject {
 }
 
 export class Pen extends DrawObject{
-    constructor(type, x1, y1, x2 = x1, y2 = y1){
+    constructor(type, x1, y1, x2 = x1, y2 = y1, additionalInfo = undefined){
         super(type, x1, y1, x2, y2)
         this.lines = []; //a list of coordinates  to draw lines
         this.scalex = 1;
         this.scaley = 1;
         this.initialWidth = x2 - x1; //used to understand the "x" scaling of the drawing
         this.initialHeight = y2 - y1; //used to understand the "y" scaling of the drawing
+        if(additionalInfo != undefined){
+            this.lines = additionalInfo[0]; 
+            this.scalex = additionalInfo[1];
+            this.scaley = additionalInfo[2];
+            this.initialWidth = additionalInfo[3]; 
+            this.initialHeight = additionalInfo[4];
+        }
     }
 
     initialize(){

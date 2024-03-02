@@ -16,7 +16,7 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
     drag: used for dragging objects
     select: used for choosing objects to then be able to resize
 */
-let tool = "rectangle"; //current tool
+let tool = "pen"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
 const drawingTools = ["pen", "rectangle"]; //a list of tools that draw something on screen
 
@@ -35,6 +35,7 @@ export function setTool(newTool){
 
 //update the state of the tool
 function updateState(event, activate = false){
+    let shouldInsertNewDrawing = true;
     if(event.button === 0){
         toolActivated = activate
         if(!toolActivated){
@@ -43,8 +44,11 @@ function updateState(event, activate = false){
             }
             else if(tool === "pen"){
                 let object = objects[objects.length - 1];
-                if (object.lines.length <= 1)
+                if (object.lines.length <= 1){
                     objects.pop();
+                    shouldInsertNewDrawing = false;
+                }
+                    
                 object.initialize();
             }
             else if(tool === "drag"){
@@ -65,6 +69,8 @@ function updateState(event, activate = false){
             }
         }
     }
+    if(drawingTools.includes(tool) && shouldInsertNewDrawing && !activate)
+        socket.emit("insertDrawing", objects[objects.length - 1])
 }
 
 //updates the set of selected objects
@@ -117,10 +123,10 @@ export function resize(state){
 
 
 // returns a drawing object depending on the current tool (having the "rectangle" tool will return a new rectangle object)
-function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y){
+function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y, additionalInfo = undefined){
     switch(currentTool){
         case "pen":
-            return new DrawObject.Pen(currentTool, x, y, x2, y2)
+            return new DrawObject.Pen(currentTool, x, y, x2, y2, additionalInfo)
         case "rectangle":
             return new DrawObject.Rectangle(currentTool, x, y, x2, y2);
     }
@@ -150,8 +156,6 @@ window.addEventListener("mousedown", event =>{
 })
 
 window.addEventListener("mouseup", event => {
-    if(drawingTools.includes(tool))
-        socket.emit("insertDrawing", objects[objects.length - 1])
     updateState(event, false)
 })
 
@@ -164,7 +168,9 @@ function Canvas(){
         socket.on("initializeCanvas", (canvas)=>{
             objects = [];
             canvas.forEach(obj =>{
-                objects.push(returnObjectByTool(obj.x1, obj.y1, obj.type, obj.x2, obj.y2));
+                let additionalInfo = undefined;
+                if(obj.type == "pen") additionalInfo = [obj.lines, obj.scalex, obj.scaley, obj.initialWidth, obj.initialHeight]
+                objects.push(returnObjectByTool(obj.x1, obj.y1, obj.type, obj.x2, obj.y2, additionalInfo));
                 updateCanvas(1 - updateC);
             })
         })
@@ -174,8 +180,9 @@ function Canvas(){
         })
 
         socket.on("updateDrawings", (newObject) =>{
-            console.log("add");
-            let obj = returnObjectByTool(newObject.x1, newObject.y1, newObject.type, newObject.x2, newObject.y2); 
+            let additionalInfo = undefined;
+            if(newObject.type == "pen") additionalInfo = [newObject.lines, newObject.scalex, newObject.scaley, newObject.initialWidth, newObject.initialHeight]
+            let obj = returnObjectByTool(newObject.x1, newObject.y1, newObject.type, newObject.x2, newObject.y2, additionalInfo); 
             objects.push(obj);
             updateCanvas(1 - updateC);
         })
@@ -187,10 +194,11 @@ function Canvas(){
         })
 
         socket.on("adjustObjects", (objs, indices) =>{
-            console.log("adjust");
             indices.forEach(i =>{
+                let additionalInfo = undefined;
                 let o = objs[i];
-                objects[i] = returnObjectByTool(o.x1, o.y1, o.type, o.x2, o.y2);
+                if(o.type == "pen") additionalInfo = [o.lines, o.scalex, o.scaley, o.initialWidth, o.initialHeight]
+                objects[i] = returnObjectByTool(o.x1, o.y1, o.type, o.x2, o.y2, additionalInfo);
             })
         })
     }, [socket])
