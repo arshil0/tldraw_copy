@@ -52,8 +52,8 @@ function updateState(event, activate = false){
                 object.initialize();
             }
             else if(tool === "drag"){
+                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
                 resetSelectedObjects();
-                //boundingBox = [-1,-1, 0, 0]
             }
             else if(tool === "select"){
 
@@ -64,7 +64,7 @@ function updateState(event, activate = false){
                 })
                 tool = "select";
                 boundingBox = updateCoords(boundingBox);
-                //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
+                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
 
             }
         }
@@ -194,11 +194,13 @@ function Canvas(){
         })
 
         socket.on("adjustObjects", (objs, indices) =>{
+            let objsIndex = 0;
             indices.forEach(i =>{
                 let additionalInfo = undefined;
-                let o = objs[i];
+                let o = objs[objsIndex];
                 if(o.type == "pen") additionalInfo = [o.lines, o.scalex, o.scaley, o.initialWidth, o.initialHeight]
                 objects[i] = returnObjectByTool(o.x1, o.y1, o.type, o.x2, o.y2, additionalInfo);
+                objsIndex += 1;
             })
         })
     }, [socket])
