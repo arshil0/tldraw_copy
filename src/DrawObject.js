@@ -3,9 +3,9 @@
 class DrawObject{
     //takes the top left corrdinates as initial parameters
     constructor(type, x1, y1, x2=x1, y2=y1){
-        this.type = type;
-        this.x1 = x1;
-        this.y1 = y1;
+        this.type = type; // name of the drawing
+        this.x1 = x1; // top left corner's x coordinate
+        this.y1 = y1; // top left corner's y coordinate
         this.x2 = x2; // bottom right corner's x coordinate
         this.y2 = y2; // bottom right corner's y coordinate
     }
@@ -115,4 +115,31 @@ export class Rectangle extends DrawObject {
         this.adjustCoordinateByIndex(4 - dy, (1 - Math.abs(by - this.getCoordinateByIndex(4 - dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
             
     }
+}
+
+export class Pen extends DrawObject{
+    constructor(type, x1, y1, x2 = x1, y2 = y1){
+        super(type, x1, y1, x2, y2)
+        this.lines = []; //a list of coordinates  to draw lines
+    }
+
+    //returns the distance between 2 points
+    distance(point1, point2){
+        return Math.sqrt(Math.pow(point1[0] - point2[0], 2) + Math.pow(point1[1] - point2[1], 2))
+    }
+
+    //given a coordinate point, check if its in the current shape TEST
+    isInShape(x, y){
+        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+    }
+
+    draw(ctx){
+        ctx.beginPath();
+        ctx.moveTo(this.lines[0][0], this.lines[0][1]);
+        this.lines.forEach(coordinate => {
+            ctx.lineTo(coordinate[0], coordinate[1]);
+        })
+        ctx.stroke();
+    }
+
 }

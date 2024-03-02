@@ -15,7 +15,11 @@ export function sendObject(object){
 }
 
 const toolList = {
-  pen: {
+  pen:{
+    name: "pen"
+  },
+
+  rectangle: {
     name: "rectangle"
   },
 

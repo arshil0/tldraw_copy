@@ -18,7 +18,7 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
 */
 let tool = "rectangle"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
-const drawingTools = ["rectangle"]; //a list of tools that draw something on screen
+const drawingTools = ["pen", "rectangle"]; //a list of tools that draw something on screen
 
 
 let boundingBox = [-1,-1,0,0] // topLeft x, topLeft y, bottomRight x, bottomRight y
@@ -40,6 +40,10 @@ function updateState(event, activate = false){
         if(!toolActivated){
             if(tool === "rectangle"){
                 objects[objects.length - 1].updateCoords();
+            }
+            else if(tool === "pen"){
+                if (objects[objects.length - 1].lines.length <= 1)
+                    objects.pop()
             }
             else if(tool === "drag"){
                 resetSelectedObjects();
@@ -113,6 +117,8 @@ export function resize(state){
 // returns a drawing object depending on the current tool (having the "rectangle" tool will return a new rectangle object)
 function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y){
     switch(currentTool){
+        case "pen":
+            return new DrawObject.Pen(currentTool, x, y, x2, y2)
         case "rectangle":
             return new DrawObject.Rectangle(currentTool, x, y, x2, y2);
     }
@@ -202,7 +208,14 @@ function Canvas(){
         } 
         let x = event.clientX; //current x position of the cursor
         let y = event.clientY; //current y position of the cursor
-        if(tool === "rectangle"){
+
+        if(tool === "pen"){
+            let object = objects[objects.length - 1];
+            if(object.lines.length === 0 || object.distance(object.lines[object.lines.length - 1], [x,y]) > 10)
+                object.lines.push([x, y])
+        }
+
+        else if(tool === "rectangle"){
             let object = objects[objects.length - 1];
             object.x2 = x;
             object.y2 = y;
@@ -269,6 +282,7 @@ function Canvas(){
     useLayoutEffect(() => {
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
+        
         ctx.fillStyle = "green";
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
         objects.forEach((object) =>{
