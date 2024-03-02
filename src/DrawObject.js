@@ -75,28 +75,6 @@ class DrawObject{
 
     //handles resizing depending on object type (abstract function), mouseInfo: [lastMousePos.x, lastMousePos.y, currentMousePos.x, currentMousePos.y]
     resize(dragingCoordsIndex, mouseInfo, boundingBox){
-        return;
-    }
-}
-
-
-export class Rectangle extends DrawObject {
-    constructor(type, x1,y1, x2 = x1, y2=y1){
-        super(type, x1,y1, x2, y2)
-    }
-
-
-    //given a coordinate point, check if its in the current shape
-    isInShape(x, y){
-        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
-    }
-
-    draw(ctx){
-        ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
-    }
-
-    //handles the
-    resize(dragingCoordsIndex,mouseInfo, boundingBox){
         let dx = dragingCoordsIndex[0] // dragging coord index of x
         let dy = dragingCoordsIndex[1] // dragging coord index of y
 
@@ -113,7 +91,27 @@ export class Rectangle extends DrawObject {
         
         this.adjustCoordinateByIndex(dy, (1 - Math.abs(by - this.getCoordinateByIndex(dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
         this.adjustCoordinateByIndex(4 - dy, (1 - Math.abs(by - this.getCoordinateByIndex(4 - dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
-            
+    }
+}
+
+
+export class Rectangle extends DrawObject {
+    constructor(type, x1,y1, x2 = x1, y2=y1){
+        super(type, x1,y1, x2, y2)
+    }
+
+    //given a coordinate point, check if its in the current shape
+    isInShape(x, y){
+        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+    }
+
+    draw(ctx){
+        ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
+    }
+
+    //handles the resizing
+    resize(dragingCoordsIndex,mouseInfo, boundingBox){
+        super.resize(dragingCoordsIndex, mouseInfo, boundingBox);
     }
 }
 
@@ -121,6 +119,22 @@ export class Pen extends DrawObject{
     constructor(type, x1, y1, x2 = x1, y2 = y1){
         super(type, x1, y1, x2, y2)
         this.lines = []; //a list of coordinates  to draw lines
+        this.scalex = 1;
+        this.scaley = 1;
+        this.initialWidth = x2 - x1; //used to understand the "x" scaling of the drawing
+        this.initialHeight = y2 - y1; //used to understand the "y" scaling of the drawing
+    }
+
+    initialize(){
+        //update these values after finishing drawing
+        this.initialWidth = this.x2 - this.x1; 
+        this.initialHeight = this.y2 - this.y1;
+
+        //update all the coordinates to work with the bounding box
+        this.lines.forEach(coordinate =>{
+            coordinate[0] -= this.x1;
+            coordinate[1] -= this.y1;
+        })
     }
 
     //returns the distance between 2 points
@@ -130,16 +144,32 @@ export class Pen extends DrawObject{
 
     //given a coordinate point, check if its in the current shape TEST
     isInShape(x, y){
-        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+        if(x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2){
+            /*this.lines.forEach(coordinate => {
+                console.log(this.distance([x,y], coordinate));
+                if(this.distance([x,y], coordinate) < 10) return true;
+            })*/
+            return true;
+        }
+        return false;
+        //return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
     }
 
     draw(ctx){
         ctx.beginPath();
-        ctx.moveTo(this.lines[0][0], this.lines[0][1]);
+        let startX = this.initialWidth == 0 ? 0 : this.x1;
+        let startY = this.initialHeight == 0 ? 0 : this.y1;
+        ctx.moveTo(startX + this.lines[0][0] * this.scalex, startY + this.lines[0][1] * this.scaley);
         this.lines.forEach(coordinate => {
-            ctx.lineTo(coordinate[0], coordinate[1]);
+            ctx.lineTo(startX + coordinate[0] * this.scalex, startY + coordinate[1] * this.scaley);
         })
         ctx.stroke();
+    }
+
+    resize(dragingCoordsIndex,mouseInfo, boundingBox){
+        super.resize(dragingCoordsIndex, mouseInfo, boundingBox);
+        this.scalex = (this.x2 - this.x1) / this.initialWidth;
+        this.scaley = (this.y2 - this.y1) / this.initialHeight;
     }
 
 }

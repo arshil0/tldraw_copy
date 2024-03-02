@@ -42,8 +42,10 @@ function updateState(event, activate = false){
                 objects[objects.length - 1].updateCoords();
             }
             else if(tool === "pen"){
-                if (objects[objects.length - 1].lines.length <= 1)
-                    objects.pop()
+                let object = objects[objects.length - 1];
+                if (object.lines.length <= 1)
+                    objects.pop();
+                object.initialize();
             }
             else if(tool === "drag"){
                 resetSelectedObjects();
@@ -211,8 +213,14 @@ function Canvas(){
 
         if(tool === "pen"){
             let object = objects[objects.length - 1];
-            if(object.lines.length === 0 || object.distance(object.lines[object.lines.length - 1], [x,y]) > 10)
+            if(object.lines.length === 0 || object.distance(object.lines[object.lines.length - 1], [x,y]) > 10){
                 object.lines.push([x, y])
+                object.x1 = Math.min(x, object.x1)
+                object.y1 = Math.min(y, object.y1)
+                object.x2 = Math.max(x, object.x2)
+                object.y2 = Math.max(y, object.y2)
+            }
+                
         }
 
         else if(tool === "rectangle"){
