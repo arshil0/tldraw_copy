@@ -85,7 +85,6 @@ class DrawObject{
 
         // there is a problem here when bw or by is close to 0
 
-        console.log(this.x1, this.x2, this.y1, this.y2);
         if(bw != 0){
             this.adjustCoordinateByIndex(dx, (1 - Math.abs(bx - this.getCoordinateByIndex(dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
             this.adjustCoordinateByIndex(2 - dx, (1 - Math.abs(bx - this.getCoordinateByIndex(2 - dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
@@ -176,7 +175,6 @@ export class Pen extends DrawObject{
         ctx.beginPath();
         let startX = this.initialWidth == 0 ? 0 : (this.scalex >= 0 ? this.x1 : this.x2);
         let startY = this.initialHeight == 0 ? 0 : (this.scaley >= 0 ? this.y1 : this.y2);
-        console.log(this.scalex);
         ctx.moveTo(startX + this.lines[0][0] * this.scalex, startY + this.lines[0][1] * this.scaley);
         this.lines.forEach(coordinate => {
             ctx.lineTo(startX + coordinate[0] * this.scalex, startY + coordinate[1] * this.scaley);
