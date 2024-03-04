@@ -149,7 +149,7 @@ window.addEventListener("mousedown", event =>{
         })
     }
     else if(tool === "select"){
-        resetBoundingBoxCoords()
+        resetBoundingBoxCoords();
         resetSelectedObjects();
     }
     updateState(event, true);

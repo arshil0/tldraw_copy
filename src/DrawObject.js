@@ -85,12 +85,25 @@ class DrawObject{
 
         // there is a problem here when bw or by is close to 0
 
-        this.adjustCoordinateByIndex(dx, (1 - Math.abs(bx - this.getCoordinateByIndex(dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
-        this.adjustCoordinateByIndex(2 - dx, (1 - Math.abs(bx - this.getCoordinateByIndex(2 - dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
+        console.log(this.x1, this.x2, this.y1, this.y2);
+        if(bw != 0){
+            this.adjustCoordinateByIndex(dx, (1 - Math.abs(bx - this.getCoordinateByIndex(dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
+            this.adjustCoordinateByIndex(2 - dx, (1 - Math.abs(bx - this.getCoordinateByIndex(2 - dx))/ bw) * (mouseInfo[2] - mouseInfo[0]))
+        }
+        else{
+            this.adjustCoordinateByIndex(dx, (1 - Math.abs(bx - this.getCoordinateByIndex(dx))) * (mouseInfo[2] - mouseInfo[0]))
+        }
+        
             
         
-        this.adjustCoordinateByIndex(dy, (1 - Math.abs(by - this.getCoordinateByIndex(dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
-        this.adjustCoordinateByIndex(4 - dy, (1 - Math.abs(by - this.getCoordinateByIndex(4 - dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
+        if(bh != 0){
+            this.adjustCoordinateByIndex(dy, (1 - Math.abs(by - this.getCoordinateByIndex(dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
+            this.adjustCoordinateByIndex(4 - dy, (1 - Math.abs(by - this.getCoordinateByIndex(4 - dy))/ bh) * (mouseInfo[3] - mouseInfo[1]))
+        }
+        else{
+            this.adjustCoordinateByIndex(dy, (1 - Math.abs(by - this.getCoordinateByIndex(dy))) * (mouseInfo[3] - mouseInfo[1]))
+        }
+        
         
     }
 }
@@ -110,10 +123,6 @@ export class Rectangle extends DrawObject {
         ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
     }
 
-    //handles the resizing
-    resize(dragingCoordsIndex,mouseInfo, boundingBox){
-        super.resize(dragingCoordsIndex, mouseInfo, boundingBox);
-    }
 }
 
 export class Pen extends DrawObject{
@@ -165,8 +174,9 @@ export class Pen extends DrawObject{
 
     draw(ctx){
         ctx.beginPath();
-        let startX = this.initialWidth == 0 ? 0 : this.x1;
-        let startY = this.initialHeight == 0 ? 0 : this.y1;
+        let startX = this.initialWidth == 0 ? 0 : (this.scalex >= 0 ? this.x1 : this.x2);
+        let startY = this.initialHeight == 0 ? 0 : (this.scaley >= 0 ? this.y1 : this.y2);
+        console.log(this.scalex);
         ctx.moveTo(startX + this.lines[0][0] * this.scalex, startY + this.lines[0][1] * this.scaley);
         this.lines.forEach(coordinate => {
             ctx.lineTo(startX + coordinate[0] * this.scalex, startY + coordinate[1] * this.scaley);
@@ -176,8 +186,12 @@ export class Pen extends DrawObject{
 
     resize(dragingCoordsIndex,mouseInfo, boundingBox){
         super.resize(dragingCoordsIndex, mouseInfo, boundingBox);
-        this.scalex = (this.x2 - this.x1) / this.initialWidth;
-        this.scaley = (this.y2 - this.y1) / this.initialHeight;
+        let scaleXSign = Math.sign(this.scalex)
+        let scaleYSign = Math.sign(this.scaley)
+        this.scalex = (this.x2 - this.x1) / this.initialWidth * (scaleXSign == 0 ? 1 : scaleXSign);
+        this.scaley = (this.y2 - this.y1) / this.initialHeight * (scaleYSign == 0 ? 1 : scaleYSign);
+
+        if(this.x2 - this.x1 < 0 || this.y2 - this.y1 < 0) this.updateCoords()
     }
 
 }
