@@ -11,10 +11,18 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
 
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    rectangle: used for drawing rectangles
+    pen: draw like a regular pen
+    rectangle: draw rectangles
+    ellipse: draw ellipses
+    text: input text
     eraser: used for deleting
     drag: used for dragging objects
     select: used for choosing objects to then be able to resize
+
+        tools that can't be chosen by the user
+    resize: resize the bounding box of selected objects, updating the size of the objects
+    textEdit: edit selected text (1 can be selected)
+    
 */
 let tool = "pen"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
@@ -131,12 +139,22 @@ function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y, additionalIn
             return new DrawObject.Rectangle(currentTool, x, y, x2, y2);
         case "ellipse":
             return new DrawObject.Ellipse(currentTool, x, y, x2, y2);
+        case "text":
+            return new DrawObject.Text(currentTool, x, y, x2, y2);
     }
 }
 
 window.addEventListener("mousedown", event =>{
     if(drawingTools.includes(tool)){
         objects.push(returnObjectByTool(event.clientX, event.clientY));
+    }
+
+    else if(tool === "text"){
+        let obj = returnObjectByTool(event.clientX, event.clientY)
+        objects.push(obj);
+        selectedObjects = [];
+        selectedObjects.push(obj);
+        tool = "textEdit";
     }
     
         
@@ -215,7 +233,14 @@ function Canvas(){
         }
     }) */
 
-    window.addEventListener("mousemove", event => {
+    const handleKeyInput = (event) =>{
+        console.log(event);
+        if(tool === "textEdit"){
+            selectedObjects[0].updateText(event.key)
+        }
+    }
+
+    const handleMouseMove = (event) => {
         if(!toolActivated){
             lastMousePos = [event.clientX, event.clientY];
             return
@@ -297,7 +322,7 @@ function Canvas(){
         
         lastMousePos = [x, y];
         updateCanvas(1 - updateC); //to keep the number between 0 and 1, not to go up to a huge number
-    })
+    }
 
     useLayoutEffect(() => {
         const canvas = document.getElementById("canvas");
@@ -312,10 +337,11 @@ function Canvas(){
 
     return(
         <>
-            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight}></canvas>
+            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseMove={handleMouseMove}></canvas>
             {(tool === "select" || tool === "resize") &&
             <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
             }
+            <input type = "text" onKeyDown={handleKeyInput}></input>
             
         </>
         

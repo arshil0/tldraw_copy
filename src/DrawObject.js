@@ -103,7 +103,7 @@ class DrawObject{
 
     //given a coordinate point, check if its in the current shape (abstract function)
     isInShape(x, y){
-        return;
+        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
     }
 
     //draw this object on screen (abstract function)
@@ -177,15 +177,28 @@ export class Pen extends DrawObject{
 
 }
 
+export class Text extends DrawObject{
+    constructor(type, x1, y1, x2 = x1, y2 = y1, text = ""){
+        super(type, x1, y1, x2, y2);
+        this.text = text;
+    }
+
+    draw(ctx){
+        ctx.fillStyle = "black";
+        ctx.font = "bold 18px Arial";
+        ctx.fillText(this.text, this.x1, this.y1);
+    }
+
+    updateText(eventKey){
+        this.text += eventKey;
+    }
+
+}
+
 
 export class Rectangle extends DrawObject {
     constructor(type, x1,y1, x2 = x1, y2=y1){
         super(type, x1,y1, x2, y2)
-    }
-
-    //given a coordinate point, check if its in the current shape
-    isInShape(x, y){
-        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
     }
 
     draw(ctx){
@@ -197,11 +210,6 @@ export class Rectangle extends DrawObject {
 export class Ellipse extends DrawObject{
     constructor(type, x1, y1, x2 = x1, y2 = y1){
         super(type, x1, y1, x2, y2);
-    }
-
-    //given a coordinate point, check if its in the current shape
-    isInShape(x, y){
-        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
     }
 
     draw(ctx){
