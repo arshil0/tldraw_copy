@@ -61,19 +61,12 @@ class DrawObject{
         }
     }
 
-    
-
-    //given a coordinate point, check if its in the current shape (abstract function)
-    isInShape(x, y){
-        return;
+    //returns the distance between 2 points
+    distance(point1, point2){
+        return Math.sqrt(Math.pow(point1[0] - point2[0], 2) + Math.pow(point1[1] - point2[1], 2))
     }
 
-    //draw this object on screen (abstract function)
-    draw(ctx){
-        return;
-    }
-
-    //handles resizing depending on object type (abstract function), mouseInfo: [lastMousePos.x, lastMousePos.y, currentMousePos.x, currentMousePos.y]
+    //handles resizing depending on object type, mouseInfo: [lastMousePos.x, lastMousePos.y, currentMousePos.x, currentMousePos.y]
     resize(dragingCoordsIndex, mouseInfo, boundingBox){
         let dx = dragingCoordsIndex[0] // dragging coord index of x
         let dy = dragingCoordsIndex[1] // dragging coord index of y
@@ -105,23 +98,18 @@ class DrawObject{
         
         
     }
-}
 
+    
 
-export class Rectangle extends DrawObject {
-    constructor(type, x1,y1, x2 = x1, y2=y1){
-        super(type, x1,y1, x2, y2)
-    }
-
-    //given a coordinate point, check if its in the current shape
+    //given a coordinate point, check if its in the current shape (abstract function)
     isInShape(x, y){
-        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+        return;
     }
 
+    //draw this object on screen (abstract function)
     draw(ctx){
-        ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
+        return;
     }
-
 }
 
 export class Pen extends DrawObject{
@@ -153,12 +141,7 @@ export class Pen extends DrawObject{
         })
     }
 
-    //returns the distance between 2 points
-    distance(point1, point2){
-        return Math.sqrt(Math.pow(point1[0] - point2[0], 2) + Math.pow(point1[1] - point2[1], 2))
-    }
-
-    //given a coordinate point, check if its in the current shape TEST
+    //given a coordinate point, check if its in the current shape
     isInShape(x, y){
         if(x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2){
             /*this.lines.forEach(coordinate => {
@@ -192,4 +175,38 @@ export class Pen extends DrawObject{
         if(this.x2 - this.x1 < 0 || this.y2 - this.y1 < 0) this.updateCoords()
     }
 
+}
+
+
+export class Rectangle extends DrawObject {
+    constructor(type, x1,y1, x2 = x1, y2=y1){
+        super(type, x1,y1, x2, y2)
+    }
+
+    //given a coordinate point, check if its in the current shape
+    isInShape(x, y){
+        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+    }
+
+    draw(ctx){
+        ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
+    }
+
+}
+
+export class Ellipse extends DrawObject{
+    constructor(type, x1, y1, x2 = x1, y2 = y1){
+        super(type, x1, y1, x2, y2);
+    }
+
+    //given a coordinate point, check if its in the current shape
+    isInShape(x, y){
+        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+    }
+
+    draw(ctx){
+        ctx.beginPath();
+        ctx.ellipse((this.x1 + this.x2) / 2, (this.y1 + this.y2)/2, Math.abs(this.x2 - this.x1) / 2, Math.abs(this.y2 - this.y1) / 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+    }
 }

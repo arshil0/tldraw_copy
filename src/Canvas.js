@@ -18,7 +18,7 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
 */
 let tool = "pen"; //current tool
 let toolActivated = false; //if tool is activated (holding down left click)
-const drawingTools = ["pen", "rectangle"]; //a list of tools that draw something on screen
+const drawingTools = ["pen", "rectangle", "ellipse"]; //a list of tools that draw something on screen
 
 
 let boundingBox = [-1,-1,0,0] // topLeft x, topLeft y, bottomRight x, bottomRight y
@@ -39,10 +39,7 @@ function updateState(event, activate = false){
     if(event.button === 0){
         toolActivated = activate
         if(!toolActivated){
-            if(tool === "rectangle"){
-                objects[objects.length - 1].updateCoords();
-            }
-            else if(tool === "pen"){
+            if(tool === "pen"){
                 let object = objects[objects.length - 1];
                 if (object.lines.length <= 1){
                     objects.pop();
@@ -50,6 +47,9 @@ function updateState(event, activate = false){
                 }
                     
                 object.initialize();
+            }
+            else if(tool != "pen" && drawingTools.includes(tool)){
+                objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
                 socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
@@ -129,6 +129,8 @@ function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y, additionalIn
             return new DrawObject.Pen(currentTool, x, y, x2, y2, additionalInfo)
         case "rectangle":
             return new DrawObject.Rectangle(currentTool, x, y, x2, y2);
+        case "ellipse":
+            return new DrawObject.Ellipse(currentTool, x, y, x2, y2);
     }
 }
 
@@ -233,7 +235,7 @@ function Canvas(){
                 
         }
 
-        else if(tool === "rectangle"){
+        else if(drawingTools.includes(tool)){
             let object = objects[objects.length - 1];
             object.x2 = x;
             object.y2 = y;

@@ -23,6 +23,10 @@ const toolList = {
     name: "rectangle"
   },
 
+  elipse: {
+    name: "ellipse"
+  },
+
   eraser: {
     name: "eraser"
   },
