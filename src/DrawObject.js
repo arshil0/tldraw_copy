@@ -1,4 +1,5 @@
 //THIS FILE CONTAINS ALL FUNCTIONS, VARIABLES NECESSARY FOR DRAWING SOMETHING (example: square, circle, pen, etc...)
+import "./specialObjects/text.css"
 
 class DrawObject{
     //takes the top left corrdinates as initial parameters
@@ -181,16 +182,24 @@ export class Text extends DrawObject{
     constructor(type, x1, y1, x2 = x1, y2 = y1, text = ""){
         super(type, x1, y1, x2, y2);
         this.text = text;
+        this.size = 18;
     }
 
     draw(ctx){
         ctx.fillStyle = "black";
-        ctx.font = "bold 18px Arial";
-        ctx.fillText(this.text, this.x1, this.y1);
+        ctx.font = "bold " + this.size + "px Arial";
+        ctx.fillText(this.text, this.x1, this.y1 + this.size / 1.2)
+        this.x2 = this.x1 + ctx.measureText(this.text).width;
+        this.y2 = this.y1 + this.size;
+        //return <input class="text" type="text" value={this.text}></input>
     }
 
     updateText(eventKey){
         this.text += eventKey;
+    }
+
+    resize(dragingCoordsIndex,mouseInfo, boundingBox){
+        this.size += (mouseInfo[2] - mouseInfo[0]) / this.text.length; 
     }
 
 }

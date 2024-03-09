@@ -56,7 +56,7 @@ function updateState(event, activate = false){
                     
                 object.initialize();
             }
-            else if(tool != "pen" && drawingTools.includes(tool)){
+            else if(drawingTools.includes(tool)){
                 objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
@@ -181,6 +181,13 @@ window.addEventListener("mouseup", event => {
 
 window.addEventListener("contextmenu", e => e.preventDefault());
 
+//FOR TESTING!
+window.addEventListener("keydown", (event) =>{
+    if(tool === "textEdit"){
+        selectedObjects[0].updateText(event.key)
+    }
+})
+
 function Canvas(){
     const [updateC, updateCanvas] = useState(0);
 
@@ -233,8 +240,12 @@ function Canvas(){
         }
     }) */
 
+
+    
+
+    //an attempt to add text
     const handleKeyInput = (event) =>{
-        console.log(event);
+        console.log(event.key);
         if(tool === "textEdit"){
             selectedObjects[0].updateText(event.key)
         }
@@ -338,10 +349,10 @@ function Canvas(){
     return(
         <>
             <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseMove={handleMouseMove}></canvas>
+            
             {(tool === "select" || tool === "resize") &&
             <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
             }
-            <input type = "text" onKeyDown={handleKeyInput}></input>
             
         </>
         
