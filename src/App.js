@@ -27,9 +27,9 @@ const toolList = {
     name: "ellipse"
   },
 
-  text: {
+  /*text: {
     name: "text"
-  },
+  },*/
 
   eraser: {
     name: "eraser"

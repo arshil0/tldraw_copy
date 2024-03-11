@@ -178,18 +178,21 @@ export class Pen extends DrawObject{
 
 }
 
+
 export class Text extends DrawObject{
     constructor(type, x1, y1, x2 = x1, y2 = y1, text = ""){
         super(type, x1, y1, x2, y2);
         this.text = text;
-        this.size = 18;
+        this.size = 18.0;
+        this.textMeasure = 0;
     }
 
     draw(ctx){
+        this.textMeasure = ctx.measureText(this.text).width;
         ctx.fillStyle = "black";
         ctx.font = "bold " + this.size + "px Arial";
         ctx.fillText(this.text, this.x1, this.y1 + this.size / 1.2)
-        this.x2 = this.x1 + ctx.measureText(this.text).width;
+        this.x2 = this.x1 + this.textMeasure;
         this.y2 = this.y1 + this.size;
         //return <input class="text" type="text" value={this.text}></input>
     }
@@ -199,7 +202,8 @@ export class Text extends DrawObject{
     }
 
     resize(dragingCoordsIndex,mouseInfo, boundingBox){
-        this.size += (mouseInfo[2] - mouseInfo[0]) / this.text.length; 
+        this.size *= this.textMeasure/(this.textMeasure - (mouseInfo[2] - mouseInfo[0])); //ALMOST there!
+        //this.size += (mouseInfo[2] - mouseInfo[0]) / this.text.length; 
     }
 
 }
