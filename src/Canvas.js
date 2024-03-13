@@ -9,6 +9,8 @@ var selectedObjects = []; //list of objects currently selected with the select o
 var selectedObjectsIndices = []; //list of indices for currently selected objects
 var lastMousePos = []; //the position of the mouse before moving the cursor (used for updating movement)
 
+var offset = [0,0];
+
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     pen: draw like a regular pen
@@ -18,6 +20,7 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
     eraser: used for deleting
     drag: used for dragging objects
     select: used for choosing objects to then be able to resize
+    moveCanvas: used to move the offset of the canvas, ACTIVATED UPONG HOLDING "SPACE"!!!
 
         tools that can't be chosen by the user
     resize: resize the bounding box of selected objects, updating the size of the objects
@@ -25,6 +28,7 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
     
 */
 let tool = "pen"; //current tool
+let previousTool = undefined;
 let toolActivated = false; //if tool is activated (holding down left click)
 const drawingTools = ["pen", "rectangle", "ellipse"]; //a list of tools that draw something on screen
 
@@ -152,8 +156,8 @@ window.addEventListener("mousedown", event =>{
     else if(tool === "text"){
         let obj = returnObjectByTool(event.clientX, event.clientY)
         objects.push(obj);
-        selectedObjects = [];
-        selectedObjects.push(obj);
+        resetSelectedObjects();
+        updateSelectedObjects(obj);
         tool = "textEdit";
     }
     
@@ -185,6 +189,22 @@ window.addEventListener("contextmenu", e => e.preventDefault());
 window.addEventListener("keydown", (event) =>{
     if(tool === "textEdit"){
         selectedObjects[0].updateText(event.key)
+    }
+    if(event.code == "Space"){
+        event.preventDefault(); //to not cause the website to scroll down
+        if(tool != "moveCanvas"){
+            previousTool = tool;
+            tool = "moveCanvas";
+            document.body.style.cursor = 'grab';
+        }
+    }
+})
+
+window.addEventListener("keyup", (event) =>{
+    if(event.code == "Space"){
+        tool = previousTool;
+        previousTool = undefined;
+        document.body.style.cursor = '';
     }
 })
 
@@ -251,11 +271,20 @@ function Canvas(){
         }
     }
 
+    const handleMouseDown = (event) =>{
+        if(event.button === 0 && tool === "moveCanvas") document.body.style.cursor = 'grabbing';
+    }
+
+    const handleMouseUp = (event) =>{
+        if(event.button === 0 && tool === "moveCanvas") document.body.style.cursor = 'grab';
+    }
+
     const handleMouseMove = (event) => {
         if(!toolActivated){
             lastMousePos = [event.clientX, event.clientY];
             return
         } 
+
         let x = event.clientX; //current x position of the cursor
         let y = event.clientY; //current y position of the cursor
 
@@ -331,6 +360,11 @@ function Canvas(){
             boundingBox[dragingCoordsIndex[1]] += y - lastMousePos[1];
         }
         
+        else if(tool == "moveCanvas"){
+            offset[0] += x - lastMousePos[0];
+            offset[1] += y - lastMousePos[1];
+        }
+
         lastMousePos = [x, y];
         updateCanvas(1 - updateC); //to keep the number between 0 and 1, not to go up to a huge number
     }
@@ -339,19 +373,21 @@ function Canvas(){
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
         
+        if(offset[0] == 0 && offset[1] == 0) offset = undefined;
         ctx.fillStyle = "green";
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
         objects.forEach((object) =>{
-            object.draw(ctx)
+            object.draw(ctx, offset)
         })
+        offset = [0,0];
     });
 
     return(
         <>
-            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseMove={handleMouseMove}></canvas>
+            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}></canvas>
             
             {(tool === "select" || tool === "resize") &&
-            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
+            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2]) + offset[0]} y={Math.min(boundingBox[1], boundingBox[3]) + offset[1]} width={Math.abs(boundingBox[2] - boundingBox[0]) + offset[0]} height={Math.abs(boundingBox[3] - boundingBox[1]) + offset[1]}></BoundingBox>
             }
             
         </>

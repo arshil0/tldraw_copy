@@ -14,6 +14,10 @@ export function sendObject(object){
   socket.emit("insertDrawing", object)
 }
 
+const testFunc = (e) =>{
+  console.log(e);
+}
+
 const toolList = {
   pen:{
     name: "pen"
@@ -41,7 +45,12 @@ const toolList = {
 
   select: {
     name: "select"
-  }
+  },
+
+  /*
+  move: {
+    name: "moveCanvas"
+  }*/
 }
 
 function App() {

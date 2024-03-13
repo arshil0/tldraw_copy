@@ -100,6 +100,14 @@ class DrawObject{
         
     }
 
+    changeOffset(offset){
+        console.log("hello");
+        this.x1 += offset[0];
+        this.x2 += offset[0];
+        this.y1 += offset[1];
+        this.y2 += offset[1];
+    }
+
     
 
     //given a coordinate point, check if its in the current shape (abstract function)
@@ -108,7 +116,7 @@ class DrawObject{
     }
 
     //draw this object on screen (abstract function)
-    draw(ctx){
+    draw(ctx, offset){
         return;
     }
 }
@@ -155,7 +163,8 @@ export class Pen extends DrawObject{
         //return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
     }
 
-    draw(ctx){
+    draw(ctx, offset){
+        if(offset != undefined) this.changeOffset(offset);
         ctx.beginPath();
         let startX = this.initialWidth == 0 ? 0 : (this.scalex >= 0 ? this.x1 : this.x2);
         let startY = this.initialHeight == 0 ? 0 : (this.scaley >= 0 ? this.y1 : this.y2);
@@ -187,7 +196,7 @@ export class Text extends DrawObject{
         this.textMeasure = 0;
     }
 
-    draw(ctx){
+    draw(ctx, offset = false){
         this.textMeasure = ctx.measureText(this.text).width;
         ctx.fillStyle = "black";
         ctx.font = "bold " + this.size + "px Arial";
@@ -202,6 +211,7 @@ export class Text extends DrawObject{
     }
 
     resize(dragingCoordsIndex,mouseInfo, boundingBox){
+        //super.resize(dragingCoordsIndex, mouseInfo, boundingBox)
         this.size *= this.textMeasure/(this.textMeasure - (mouseInfo[2] - mouseInfo[0])); //ALMOST there!
         //this.size += (mouseInfo[2] - mouseInfo[0]) / this.text.length; 
     }
@@ -214,7 +224,8 @@ export class Rectangle extends DrawObject {
         super(type, x1,y1, x2, y2)
     }
 
-    draw(ctx){
+    draw(ctx, offset){
+        if(offset != undefined) this.changeOffset(offset);
         ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
     }
 
@@ -225,7 +236,8 @@ export class Ellipse extends DrawObject{
         super(type, x1, y1, x2, y2);
     }
 
-    draw(ctx){
+    draw(ctx, offset){
+        if(offset != undefined) this.changeOffset(offset);
         ctx.beginPath();
         ctx.ellipse((this.x1 + this.x2) / 2, (this.y1 + this.y2)/2, Math.abs(this.x2 - this.x1) / 2, Math.abs(this.y2 - this.y1) / 2, 0, 0, Math.PI * 2);
         ctx.stroke();
