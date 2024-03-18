@@ -25,16 +25,12 @@ io.on("connection", (socket) =>{
         players[0].emit("requestCanvas");
     
 
-    socket.on("sendCanvas", (canvas) =>{
-        socket.broadcast.emit("initializeCanvas", canvas);
+    socket.on("sendCanvas", (canvas, offset) =>{
+        socket.broadcast.emit("initializeCanvas", canvas, offset);
     })
 
-    socket.on("test", ()=>{
-        console.log("test function called!")
-    })
-
-    socket.on("insertDrawing", (object)=>{
-        socket.broadcast.emit("updateDrawings", object);
+    socket.on("insertDrawing", (object, offset)=>{
+        socket.broadcast.emit("updateDrawings", object, offset);
     })
 
     socket.on("eraseDrawing", (index) =>{
@@ -42,8 +38,8 @@ io.on("connection", (socket) =>{
     })
 
     //given a dictionary of (index: object) send this dictionary to adjust objects at current indices (resizing, dragging, etc..)
-    socket.on("adjustDrawings", (objects, indices) =>{
-        socket.broadcast.emit("adjustObjects", objects, indices);
+    socket.on("adjustDrawings", (objects, indices, offset) =>{
+        socket.broadcast.emit("adjustObjects", objects, indices, offset);
     })
 
     socket.on("disconnect", () =>{

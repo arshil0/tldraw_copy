@@ -101,7 +101,6 @@ class DrawObject{
     }
 
     changeOffset(offset){
-        console.log("hello");
         this.x1 += offset[0];
         this.x2 += offset[0];
         this.y1 += offset[1];

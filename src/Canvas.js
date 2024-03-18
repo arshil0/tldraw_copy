@@ -9,7 +9,8 @@ var selectedObjects = []; //list of objects currently selected with the select o
 var selectedObjectsIndices = []; //list of indices for currently selected objects
 var lastMousePos = []; //the position of the mouse before moving the cursor (used for updating movement)
 
-var offset = [0,0];
+var offset = [0,0]; //offset of the canvas
+var addedOffset = [0,0]; //by how much did the offset change, to update corresponding objects
 
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -64,7 +65,7 @@ function updateState(event, activate = false){
                 objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
-                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
+                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
                 resetSelectedObjects();
             }
             else if(tool === "select"){
@@ -76,13 +77,13 @@ function updateState(event, activate = false){
                 })
                 tool = "select";
                 boundingBox = updateCoords(boundingBox);
-                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices)
+                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
 
             }
         }
     }
     if(drawingTools.includes(tool) && shouldInsertNewDrawing && !activate)
-        socket.emit("insertDrawing", objects[objects.length - 1])
+        socket.emit("insertDrawing", objects[objects.length - 1], offset)
 }
 
 //updates the set of selected objects
@@ -212,24 +213,24 @@ function Canvas(){
     const [updateC, updateCanvas] = useState(0);
 
     useEffect(() =>{
-        socket.on("initializeCanvas", (canvas)=>{
+        socket.on("initializeCanvas", (canvas, otherOffset)=>{
             objects = [];
             canvas.forEach(obj =>{
                 let additionalInfo = undefined;
                 if(obj.type == "pen") additionalInfo = [obj.lines, obj.scalex, obj.scaley, obj.initialWidth, obj.initialHeight]
-                objects.push(returnObjectByTool(obj.x1, obj.y1, obj.type, obj.x2, obj.y2, additionalInfo));
+                objects.push(returnObjectByTool(obj.x1 - otherOffset[0], obj.y1 - otherOffset[1], obj.type, obj.x2 - otherOffset[0], obj.y2 - otherOffset[1], additionalInfo));
                 updateCanvas(1 - updateC);
             })
         })
 
         socket.on("requestCanvas", () =>{
-            socket.emit("sendCanvas", objects);
+            socket.emit("sendCanvas", objects, offset);
         })
 
-        socket.on("updateDrawings", (newObject) =>{
+        socket.on("updateDrawings", (newObject, otherOffset) =>{
             let additionalInfo = undefined;
             if(newObject.type == "pen") additionalInfo = [newObject.lines, newObject.scalex, newObject.scaley, newObject.initialWidth, newObject.initialHeight]
-            let obj = returnObjectByTool(newObject.x1, newObject.y1, newObject.type, newObject.x2, newObject.y2, additionalInfo); 
+            let obj = returnObjectByTool(newObject.x1 + offset[0] - otherOffset[0], newObject.y1 + offset[1] - otherOffset[1], newObject.type, newObject.x2 + offset[0] - otherOffset[0], newObject.y2 + offset[1] - otherOffset[1], additionalInfo); 
             objects.push(obj);
             updateCanvas(1 - updateC);
         })
@@ -240,13 +241,13 @@ function Canvas(){
             updateCanvas(1 - updateC);
         })
 
-        socket.on("adjustObjects", (objs, indices) =>{
+        socket.on("adjustObjects", (objs, indices, otherOffset) =>{
             let objsIndex = 0;
             indices.forEach(i =>{
                 let additionalInfo = undefined;
                 let o = objs[objsIndex];
                 if(o.type == "pen") additionalInfo = [o.lines, o.scalex, o.scaley, o.initialWidth, o.initialHeight]
-                objects[i] = returnObjectByTool(o.x1, o.y1, o.type, o.x2, o.y2, additionalInfo);
+                objects[i] = returnObjectByTool(o.x1 + offset[0] - otherOffset[0], o.y1 + offset[1] - otherOffset[1], o.type, o.x2 + offset[0] - otherOffset[0], o.y2 + offset[1] - otherOffset[1], additionalInfo);
                 objsIndex += 1;
             })
         })
@@ -363,6 +364,8 @@ function Canvas(){
         else if(tool == "moveCanvas"){
             offset[0] += x - lastMousePos[0];
             offset[1] += y - lastMousePos[1];
+            addedOffset[0] += x - lastMousePos[0];
+            addedOffset[1] += y - lastMousePos[1];
         }
 
         lastMousePos = [x, y];
@@ -373,13 +376,13 @@ function Canvas(){
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
         
-        if(offset[0] == 0 && offset[1] == 0) offset = undefined;
+        if(addedOffset[0] == 0 && addedOffset[1] == 0) addedOffset = undefined;
         ctx.fillStyle = "green";
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
         objects.forEach((object) =>{
-            object.draw(ctx, offset)
+            object.draw(ctx, addedOffset)
         })
-        offset = [0,0];
+        addedOffset = [0,0];
     });
 
     return(
@@ -387,7 +390,7 @@ function Canvas(){
             <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}></canvas>
             
             {(tool === "select" || tool === "resize") &&
-            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2]) + offset[0]} y={Math.min(boundingBox[1], boundingBox[3]) + offset[1]} width={Math.abs(boundingBox[2] - boundingBox[0]) + offset[0]} height={Math.abs(boundingBox[3] - boundingBox[1]) + offset[1]}></BoundingBox>
+            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
             }
             
         </>
