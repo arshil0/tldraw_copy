@@ -92,6 +92,14 @@ function updateSelectedObjects(object, index){
     selectedObjectsIndices.push(index);
 }
 
+//update the offset by the given [x,y] amount
+function updateOffset(x, y){
+    offset[0] += x;
+    offset[1] += y;
+    addedOffset[0] += x;
+    addedOffset[1] += y;
+}
+
 //deselects all objects
 function resetSelectedObjects(){
     selectedObjects = [];
@@ -210,7 +218,7 @@ window.addEventListener("keyup", (event) =>{
 })
 
 function Canvas(){
-    const [updateC, updateCanvas] = useState(0);
+    const [c, updateCanvas] = useState(0); //just make sure you call updateCanvas (1-c) to keep the number between 0 and 1, not to go up to a huge number
 
     useEffect(() =>{
         socket.on("initializeCanvas", (canvas, otherOffset)=>{
@@ -219,7 +227,7 @@ function Canvas(){
                 let additionalInfo = undefined;
                 if(obj.type == "pen") additionalInfo = [obj.lines, obj.scalex, obj.scaley, obj.initialWidth, obj.initialHeight]
                 objects.push(returnObjectByTool(obj.x1 - otherOffset[0], obj.y1 - otherOffset[1], obj.type, obj.x2 - otherOffset[0], obj.y2 - otherOffset[1], additionalInfo));
-                updateCanvas(1 - updateC);
+                updateCanvas(1 - c);
             })
         })
 
@@ -232,13 +240,13 @@ function Canvas(){
             if(newObject.type == "pen") additionalInfo = [newObject.lines, newObject.scalex, newObject.scaley, newObject.initialWidth, newObject.initialHeight]
             let obj = returnObjectByTool(newObject.x1 + offset[0] - otherOffset[0], newObject.y1 + offset[1] - otherOffset[1], newObject.type, newObject.x2 + offset[0] - otherOffset[0], newObject.y2 + offset[1] - otherOffset[1], additionalInfo); 
             objects.push(obj);
-            updateCanvas(1 - updateC);
+            updateCanvas(1 - c);
         })
 
         socket.on("eraseObject", (index) =>{
             objects[index] = null;
             objects.splice(index, 1)
-            updateCanvas(1 - updateC);
+            updateCanvas(1 - c);
         })
 
         socket.on("adjustObjects", (objs, indices, otherOffset) =>{
@@ -278,6 +286,17 @@ function Canvas(){
 
     const handleMouseUp = (event) =>{
         if(event.button === 0 && tool === "moveCanvas") document.body.style.cursor = 'grab';
+    }
+
+    const handleMouseWheel = (event) =>{
+        if(event.deltaY < 0){ //scrolled up
+            updateOffset(0, 20)
+            updateCanvas(1 - c);
+        }
+        else{ //scrolled down
+            updateOffset(0, -20)
+            updateCanvas(1 - c);
+        }
     }
 
     const handleMouseMove = (event) => {
@@ -362,14 +381,11 @@ function Canvas(){
         }
         
         else if(tool == "moveCanvas"){
-            offset[0] += x - lastMousePos[0];
-            offset[1] += y - lastMousePos[1];
-            addedOffset[0] += x - lastMousePos[0];
-            addedOffset[1] += y - lastMousePos[1];
+            updateOffset(x - lastMousePos[0], y - lastMousePos[1])
         }
 
         lastMousePos = [x, y];
-        updateCanvas(1 - updateC); //to keep the number between 0 and 1, not to go up to a huge number
+        updateCanvas(1 - c);
     }
 
     useLayoutEffect(() => {
@@ -387,7 +403,7 @@ function Canvas(){
 
     return(
         <>
-            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}></canvas>
+            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onWheel={handleMouseWheel}></canvas>
             
             {(tool === "select" || tool === "resize") &&
             <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
