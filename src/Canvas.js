@@ -2,7 +2,8 @@ import {useEffect, useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
 import { boundingBoxOffset } from "./boundingBox.js";
 import * as DrawObject from "./DrawObject.js";
-import {socket} from "./App.js";
+//import {socket} from "./App.js";
+import {firebaseApp, setDatabase} from "./firebase.js";
 
 var objects = []; //list of drawn objects
 var selectedObjects = []; //list of objects currently selected with the select or drag tool
@@ -11,7 +12,6 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
 
 var offset = [0,0]; //offset of the canvas
 var addedOffset = [0,0]; //by how much did the offset change, to update corresponding objects
-
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     pen: draw like a regular pen
@@ -53,6 +53,7 @@ function updateState(event, activate = false){
         toolActivated = activate
         if(!toolActivated){
             if(tool === "pen"){
+                setDatabase(7, 1);
                 let object = objects[objects.length - 1];
                 if (object.lines.length <= 1){
                     objects.pop();
@@ -65,7 +66,7 @@ function updateState(event, activate = false){
                 objects[objects.length - 1].updateCoords();
             }
             else if(tool === "drag"){
-                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
+                //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
                 resetSelectedObjects();
             }
             else if(tool === "select"){
@@ -77,13 +78,14 @@ function updateState(event, activate = false){
                 })
                 tool = "select";
                 boundingBox = updateCoords(boundingBox);
-                socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
+                //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
 
             }
         }
     }
     if(drawingTools.includes(tool) && shouldInsertNewDrawing && !activate)
-        socket.emit("insertDrawing", objects[objects.length - 1], offset)
+        return
+        //socket.emit("insertDrawing", objects[objects.length - 1], offset)
 }
 
 //updates the set of selected objects
@@ -218,8 +220,9 @@ window.addEventListener("keyup", (event) =>{
 })
 
 function Canvas(){
-    const [c, updateCanvas] = useState(0); //just make sure you call updateCanvas (1-c) to keep the number between 0 and 1, not to go up to a huge number
 
+    const [c, updateCanvas] = useState(0); //just make sure you call updateCanvas (1-c) to keep the number between 0 and 1, not to go up to a huge number
+/*
     useEffect(() =>{
         socket.on("initializeCanvas", (canvas, otherOffset)=>{
             objects = [];
@@ -260,7 +263,7 @@ function Canvas(){
             })
         })
     }, [socket])
-
+*/
     /* this function gets called over 100 times for some reason
     window.addEventListener("visibilitychange", () => {
         if(document.visibilityState == "visible"){
@@ -332,7 +335,7 @@ function Canvas(){
                 if(object.isInShape(x,y)){
                     objects.splice(i, 1);
                     object = null;
-                    socket.emit("eraseDrawing", i)
+                    //socket.emit("eraseDrawing", i)
                     break;
                 }
                 
