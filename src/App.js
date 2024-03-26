@@ -2,22 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import Canvas from "./Canvas.js";
 import ToolBar from "./ToolBar.js";
-/*import io from "socket.io-client";
 
-const socket = io.connect("http://localhost:3001")
-
-export function test(){
-  socket.emit("test")
-}
-
-export function sendObject(object){
-  socket.emit("insertDrawing", object)
-}
-
-const testFunc = (e) =>{
-  console.log(e);
-}
-*/
 
 const toolList = {
   pen:{

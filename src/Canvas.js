@@ -2,8 +2,15 @@ import {useEffect, useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
 import { boundingBoxOffset } from "./boundingBox.js";
 import * as DrawObject from "./DrawObject.js";
-//import {socket} from "./App.js";
-import {firebaseApp, setDatabase} from "./firebase.js";
+import {firebaseApp, setCanvas, getCanvas, addToDB, removeFromDB} from "./firebase.js";
+import { remove } from "firebase/database";
+
+/*
+getD().then(data => {
+    let additionalInfo = [data.lines, data.scalex, data.scaley, data.initialWidth, data.initialHeight];
+    objects.push(returnObjectByTool(data.x1, data.y1, data.type, data.x2, data.y2, additionalInfo));
+});*/
+
 
 var objects = []; //list of drawn objects
 var selectedObjects = []; //list of objects currently selected with the select or drag tool
@@ -12,6 +19,9 @@ var lastMousePos = []; //the position of the mouse before moving the cursor (use
 
 var offset = [0,0]; //offset of the canvas
 var addedOffset = [0,0]; //by how much did the offset change, to update corresponding objects
+
+var multiplayer = false; //decides whether to interact with firebase's database or not 
+var sessionID = "55555"; //the session id of the multiplayer server
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     pen: draw like a regular pen
@@ -53,8 +63,9 @@ function updateState(event, activate = false){
         toolActivated = activate
         if(!toolActivated){
             if(tool === "pen"){
-                setDatabase(7, 1);
+                
                 let object = objects[objects.length - 1];
+                
                 if (object.lines.length <= 1){
                     objects.pop();
                     shouldInsertNewDrawing = false;
@@ -192,6 +203,10 @@ window.addEventListener("mousedown", event =>{
 
 window.addEventListener("mouseup", event => {
     updateState(event, false)
+    if(multiplayer && drawingTools.includes(tool)){
+        setCanvas(sessionID, objects);
+        //addToDB(sessionID, objects[objects.length-1], objects.length - 1);
+    }
 })
 
 window.addEventListener("contextmenu", e => e.preventDefault());
@@ -218,6 +233,36 @@ window.addEventListener("keyup", (event) =>{
         document.body.style.cursor = '';
     }
 })
+
+//takes a string "URL" and checks if multiplayer should be on (the website is followed by a / (numbers) )
+const isMultiplayer = (URL) =>{
+    let c = URL.charAt(URL.length - 1);
+    if (c in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] || c == '#') return true;
+    return false
+}
+
+const getSessionID = (URL) =>{
+    let i = URL.length - 1;
+    let result = ""
+    if(URL.charAt(i) == '#') i -= 1;
+    for(let j = 4; j >= 0; j--){
+        result += URL.charAt(i - j)
+    }
+    return result;
+}
+
+//extracts content from the realtime database from firebase, and puts the data in "objects"
+const extractFromDB = () =>{
+    getCanvas(sessionID).then(data =>{
+        if(data == null) return;
+        data.forEach(d =>{
+            let additionalInfo = undefined;
+            if(d.type == "pen")
+                additionalInfo = [d.lines, d.scalex, d.scaley, d.initialWidth, d.initialHeight];
+            objects.push(returnObjectByTool(d.x1, d.y1, d.type, d.x2, d.y2, additionalInfo));
+        })
+    })
+}
 
 function Canvas(){
 
@@ -264,6 +309,23 @@ function Canvas(){
         })
     }, [socket])
 */
+
+    useEffect(() =>{
+        const url = window.location.href;
+        if(isMultiplayer(url) && objects.length == 0){
+            multiplayer = true
+            sessionID = getSessionID(url);
+            extractFromDB();
+        }
+        /*getD().then(data => {
+            data = Object.values(data)[0]
+            let additionalInfo = [data.lines, data.scalex, data.scaley, data.initialWidth, data.initialHeight];
+            if(objects.length == 0){
+                objects.push(returnObjectByTool(data.x1, data.y1, data.type, data.x2, data.y2, additionalInfo));
+                updateCanvas(1 - c);
+            }
+        })*/
+    }, [])
     /* this function gets called over 100 times for some reason
     window.addEventListener("visibilitychange", () => {
         if(document.visibilityState == "visible"){
@@ -335,6 +397,7 @@ function Canvas(){
                 if(object.isInShape(x,y)){
                     objects.splice(i, 1);
                     object = null;
+                    setCanvas(sessionID, objects)
                     //socket.emit("eraseDrawing", i)
                     break;
                 }
