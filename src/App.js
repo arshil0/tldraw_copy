@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import Canvas from "./Canvas.js";
 import ToolBar from "./ToolBar.js";
+import ShareButton from './ShareButton.js';
 
 
 const toolList = {
@@ -49,6 +50,7 @@ function App() {
     <>
       <ToolBar tools ={toolList}></ToolBar>
       <Canvas></Canvas>
+      <ShareButton></ShareButton>
     </>
   );
 }

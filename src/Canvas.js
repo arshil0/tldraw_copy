@@ -3,7 +3,10 @@ import BoundingBox from './boundingBox.js';
 import { boundingBoxOffset } from "./boundingBox.js";
 import * as DrawObject from "./DrawObject.js";
 import {firebaseApp, setCanvas, getCanvas, addToDB, removeFromDB} from "./firebase.js";
-import { remove } from "firebase/database";
+import {ref, getDatabase } from "firebase/database";
+import {useListVals} from "react-firebase-hooks/database"
+
+const database = getDatabase();
 
 /*
 getD().then(data => {
@@ -21,7 +24,7 @@ var offset = [0,0]; //offset of the canvas
 var addedOffset = [0,0]; //by how much did the offset change, to update corresponding objects
 
 var multiplayer = false; //decides whether to interact with firebase's database or not 
-var sessionID = "55555"; //the session id of the multiplayer server
+var sessionID = ""; //the session id of the multiplayer server
 
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     pen: draw like a regular pen
@@ -54,6 +57,17 @@ var maxy = -1; //bottom right y of bounding box
 
 export function setTool(newTool){
     tool = newTool;
+}
+
+export function convertToMultiplayer(){
+    if(multiplayer == false){
+        multiplayer = true;
+        for(let i = 0; i < 5; i++){
+            sessionID += Math.floor(Math.random() * 10);
+        }
+        setCanvas(sessionID, objects)
+        window.location.replace("http://localhost:3000/" + sessionID);
+    }   
 }
 
 //update the state of the tool
@@ -204,8 +218,8 @@ window.addEventListener("mousedown", event =>{
 window.addEventListener("mouseup", event => {
     updateState(event, false)
     if(multiplayer && drawingTools.includes(tool)){
-        setCanvas(sessionID, objects);
-        //addToDB(sessionID, objects[objects.length-1], objects.length - 1);
+        //setCanvas(sessionID, objects);
+        addToDB(sessionID, objects[objects.length-1], objects.length - 1);
     }
 })
 
@@ -252,9 +266,9 @@ const getSessionID = (URL) =>{
 }
 
 //extracts content from the realtime database from firebase, and puts the data in "objects"
-const extractFromDB = () =>{
-    getCanvas(sessionID).then(data =>{
-        if(data == null) return;
+const extractFromDB = async() =>{
+    await getCanvas(sessionID).then(data =>{
+        if(data == null || objects.length != 0) return;
         data.forEach(d =>{
             let additionalInfo = undefined;
             if(d.type == "pen")
@@ -266,6 +280,7 @@ const extractFromDB = () =>{
 
 function Canvas(){
 
+    const [values, loading, error] = useListVals(ref(database, sessionID + "/objects"));
     const [c, updateCanvas] = useState(0); //just make sure you call updateCanvas (1-c) to keep the number between 0 and 1, not to go up to a huge number
 /*
     useEffect(() =>{
@@ -313,10 +328,12 @@ function Canvas(){
     useEffect(() =>{
         const url = window.location.href;
         if(isMultiplayer(url) && objects.length == 0){
+            tool = ""
             multiplayer = true
             sessionID = getSessionID(url);
-            extractFromDB();
+            extractFromDB().then(() => {updateCanvas(1-c); tool = "pen"});
         }
+
         /*getD().then(data => {
             data = Object.values(data)[0]
             let additionalInfo = [data.lines, data.scalex, data.scaley, data.initialWidth, data.initialHeight];
@@ -457,13 +474,23 @@ function Canvas(){
     useLayoutEffect(() => {
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
-        
         if(addedOffset[0] == 0 && addedOffset[1] == 0) addedOffset = undefined;
         ctx.fillStyle = "green";
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
-        objects.forEach((object) =>{
-            object.draw(ctx, addedOffset)
-        })
+        if(multiplayer){
+            values.forEach((object) =>{
+                let additionalInfo
+                if(object.type == "pen") 
+                    additionalInfo = [object.lines, object.scalex, object.scaley, object.initialWidth, object.initialHeight];
+                returnObjectByTool(object.x1, object.y1, object.type, object.x2, object.y2, additionalInfo).draw(ctx, addedOffset)
+            })
+        }
+        else{
+            objects.forEach((object) =>{
+                object.draw(ctx, addedOffset);
+            })
+        }
+        
         addedOffset = [0,0];
     });
 

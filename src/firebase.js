@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 
-import { getDatabase, set, ref, child, get, push, remove} from "firebase/database";
+import { getDatabase, set, ref, child, get, push, remove, onValue} from "firebase/database";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -18,21 +18,18 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const db = getDatabase();
 
 export const setCanvas = async(sessionID, objects) =>{
-  const db = getDatabase();
   set(ref(db, sessionID + "/objects"), objects)
 }
 
 
 export const addToDB = async(sessionID, object, index) =>{
-  const db = getDatabase();
   set(ref(db, sessionID + "/objects/" + index), object)
 }
 
 export const removeFromDB = async(sessionID, object) =>{
-  console.log(object);
-  const db = getDatabase();
   remove(ref(db, sessionID + "objects"), object)
 }
 
@@ -51,3 +48,4 @@ export const getCanvas = async(sessionID) =>{
   })
   return value;
 }
+
