@@ -111,6 +111,7 @@ class DrawObject{
 
     //given a coordinate point, check if its in the current shape (abstract function)
     isInShape(x, y){
+        if(this.x1 > this.x2 || this.y1 > this.y2) this.updateCoords();
         return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
     }
 
@@ -163,6 +164,7 @@ export class Pen extends DrawObject{
     }
 
     draw(ctx, offset){
+        this.updateCoords();
         if(offset != undefined) this.changeOffset(offset);
         ctx.beginPath();
         let startX = this.initialWidth == 0 ? 0 : (this.scalex >= 0 ? this.x1 : this.x2);

@@ -25,7 +25,8 @@ var addedOffset = [0,0]; //by how much did the offset change, to update correspo
 
 var multiplayer = false; //decides whether to interact with firebase's database or not 
 var sessionID = ""; //the session id of the multiplayer server
-
+var pushIntoDB = false; //decides whether to push a new object into the server database, if multiplayer is active
+var currentDrawingIndex = 0; //the index of the currently drawing object from the database (if multiplayer is active)
 /* LIST OF TOOLS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     pen: draw like a regular pen
     rectangle: draw rectangles
@@ -66,51 +67,8 @@ export function convertToMultiplayer(){
             sessionID += Math.floor(Math.random() * 10);
         }
         setCanvas(sessionID, objects)
-        window.location.replace("http://localhost:3000/" + sessionID);
+        window.location.replace("http://tldrawcopy.web.app/" + sessionID);
     }   
-}
-
-//update the state of the tool
-function updateState(event, activate = false){
-    let shouldInsertNewDrawing = true;
-    if(event.button === 0){
-        toolActivated = activate
-        if(!toolActivated){
-            if(tool === "pen"){
-                
-                let object = objects[objects.length - 1];
-                
-                if (object.lines.length <= 1){
-                    objects.pop();
-                    shouldInsertNewDrawing = false;
-                }
-                    
-                object.initialize();
-            }
-            else if(drawingTools.includes(tool)){
-                objects[objects.length - 1].updateCoords();
-            }
-            else if(tool === "drag"){
-                //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
-                resetSelectedObjects();
-            }
-            else if(tool === "select"){
-
-            }
-            else if(tool === "resize"){ //activated upon dragging a corner of a bounding box
-                selectedObjects.forEach(obj =>{
-                    obj.updateCoords();
-                })
-                tool = "select";
-                boundingBox = updateCoords(boundingBox);
-                //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
-
-            }
-        }
-    }
-    if(drawingTools.includes(tool) && shouldInsertNewDrawing && !activate)
-        return
-        //socket.emit("insertDrawing", objects[objects.length - 1], offset)
 }
 
 //updates the set of selected objects
@@ -184,44 +142,19 @@ function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y, additionalIn
     }
 }
 
-window.addEventListener("mousedown", event =>{
-    if(drawingTools.includes(tool)){
-        objects.push(returnObjectByTool(event.clientX, event.clientY));
+function returnObjectByDB(object){
+    switch(object.type){
+        case "pen":
+            let additionalInfo = [object.lines, object.scalex, object.scaley, object.initialWidth, object.initialHeight];
+            return new DrawObject.Pen(object.type, object.x1, object.y1, object.x2, object.y2, additionalInfo)
+        case "rectangle":
+            return new DrawObject.Rectangle(object.type, object.x1, object.y1, object.x2, object.y2);
+        case "ellipse":
+            return new DrawObject.Ellipse(object.type, object.x1, object.y1, object.x2, object.y2);
+        case "text":
+            return new DrawObject.Text(object.type, object.x1, object.y1, object.x2, object.y2);
     }
-
-    else if(tool === "text"){
-        let obj = returnObjectByTool(event.clientX, event.clientY)
-        objects.push(obj);
-        resetSelectedObjects();
-        updateSelectedObjects(obj);
-        tool = "textEdit";
-    }
-    
-        
-    else if(tool === "drag"){
-        objects.forEach((object,index) =>{
-            let x = event.clientX;
-            let y = event.clientY;
-            lastMousePos = [event.clientX, event.clientY];
-            if(object.isInShape(x,y)){
-                updateSelectedObjects(object, index)
-            } 
-        })
-    }
-    else if(tool === "select"){
-        resetBoundingBoxCoords();
-        resetSelectedObjects();
-    }
-    updateState(event, true);
-})
-
-window.addEventListener("mouseup", event => {
-    updateState(event, false)
-    if(multiplayer && drawingTools.includes(tool)){
-        //setCanvas(sessionID, objects);
-        addToDB(sessionID, objects[objects.length-1], objects.length - 1);
-    }
-})
+}
 
 window.addEventListener("contextmenu", e => e.preventDefault());
 
@@ -255,6 +188,7 @@ const isMultiplayer = (URL) =>{
     return false
 }
 
+//returns the sessionID using the url
 const getSessionID = (URL) =>{
     let i = URL.length - 1;
     let result = ""
@@ -282,48 +216,56 @@ function Canvas(){
 
     const [values, loading, error] = useListVals(ref(database, sessionID + "/objects"));
     const [c, updateCanvas] = useState(0); //just make sure you call updateCanvas (1-c) to keep the number between 0 and 1, not to go up to a huge number
-/*
-    useEffect(() =>{
-        socket.on("initializeCanvas", (canvas, otherOffset)=>{
-            objects = [];
-            canvas.forEach(obj =>{
-                let additionalInfo = undefined;
-                if(obj.type == "pen") additionalInfo = [obj.lines, obj.scalex, obj.scaley, obj.initialWidth, obj.initialHeight]
-                objects.push(returnObjectByTool(obj.x1 - otherOffset[0], obj.y1 - otherOffset[1], obj.type, obj.x2 - otherOffset[0], obj.y2 - otherOffset[1], additionalInfo));
-                updateCanvas(1 - c);
-            })
-        })
+    
+    //update the state of the tool
+    function updateState(event, activate = false){
+        let shouldInsertNewDrawing = true;
+        if(event.button === 0){
+            toolActivated = activate
+            if(!toolActivated){
+                if(tool === "pen"){
+                    
+                    let current = multiplayer ? values : objects
+                    let object
+                    if(!multiplayer) object = objects[objects.length - 1];
+                    else object = returnObjectByDB(values[values.length - 1])
+                    
+                    if (object.lines.length <= 1){
+                        current.pop();
+                        shouldInsertNewDrawing = false;
+                    }
+                        
+                    object.initialize();
+                    if(multiplayer){
+                        values[values.length-1] = object;
+                        setCanvas(sessionID, values);
+                    }
+                }
+                else if(drawingTools.includes(tool)){
+                    objects[objects.length - 1].updateCoords();
+                }
+                else if(tool === "drag"){
+                    //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
+                    resetSelectedObjects();
+                }
+                else if(tool === "select"){
 
-        socket.on("requestCanvas", () =>{
-            socket.emit("sendCanvas", objects, offset);
-        })
+                }
+                else if(tool === "resize"){ //activated upon dragging a corner of a bounding box
+                    selectedObjects.forEach(obj =>{
+                        obj.updateCoords();
+                    })
+                    tool = "select";
+                    boundingBox = updateCoords(boundingBox);
+                    //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
 
-        socket.on("updateDrawings", (newObject, otherOffset) =>{
-            let additionalInfo = undefined;
-            if(newObject.type == "pen") additionalInfo = [newObject.lines, newObject.scalex, newObject.scaley, newObject.initialWidth, newObject.initialHeight]
-            let obj = returnObjectByTool(newObject.x1 + offset[0] - otherOffset[0], newObject.y1 + offset[1] - otherOffset[1], newObject.type, newObject.x2 + offset[0] - otherOffset[0], newObject.y2 + offset[1] - otherOffset[1], additionalInfo); 
-            objects.push(obj);
-            updateCanvas(1 - c);
-        })
-
-        socket.on("eraseObject", (index) =>{
-            objects[index] = null;
-            objects.splice(index, 1)
-            updateCanvas(1 - c);
-        })
-
-        socket.on("adjustObjects", (objs, indices, otherOffset) =>{
-            let objsIndex = 0;
-            indices.forEach(i =>{
-                let additionalInfo = undefined;
-                let o = objs[objsIndex];
-                if(o.type == "pen") additionalInfo = [o.lines, o.scalex, o.scaley, o.initialWidth, o.initialHeight]
-                objects[i] = returnObjectByTool(o.x1 + offset[0] - otherOffset[0], o.y1 + offset[1] - otherOffset[1], o.type, o.x2 + offset[0] - otherOffset[0], o.y2 + offset[1] - otherOffset[1], additionalInfo);
-                objsIndex += 1;
-            })
-        })
-    }, [socket])
-*/
+                }
+            }
+        }
+        if(drawingTools.includes(tool) && shouldInsertNewDrawing && !activate)
+            return
+            //socket.emit("insertDrawing", objects[objects.length - 1], offset)
+    }
 
     useEffect(() =>{
         const url = window.location.href;
@@ -333,26 +275,7 @@ function Canvas(){
             sessionID = getSessionID(url);
             extractFromDB().then(() => {updateCanvas(1-c); tool = "pen"});
         }
-
-        /*getD().then(data => {
-            data = Object.values(data)[0]
-            let additionalInfo = [data.lines, data.scalex, data.scaley, data.initialWidth, data.initialHeight];
-            if(objects.length == 0){
-                objects.push(returnObjectByTool(data.x1, data.y1, data.type, data.x2, data.y2, additionalInfo));
-                updateCanvas(1 - c);
-            }
-        })*/
     }, [])
-    /* this function gets called over 100 times for some reason
-    window.addEventListener("visibilitychange", () => {
-        if(document.visibilityState == "visible"){
-            console.log("opened tab")
-            updateCanvas(1 - updateC);
-        }
-    }) */
-
-
-    
 
     //an attempt to add text
     const handleKeyInput = (event) =>{
@@ -364,10 +287,42 @@ function Canvas(){
 
     const handleMouseDown = (event) =>{
         if(event.button === 0 && tool === "moveCanvas") document.body.style.cursor = 'grabbing';
+
+        if(drawingTools.includes(tool)){
+            objects.push(returnObjectByTool(event.clientX, event.clientY));
+            if(multiplayer) pushIntoDB = true
+        }
+    
+        else if(tool === "text"){
+            let obj = returnObjectByTool(event.clientX, event.clientY)
+            objects.push(obj);
+            resetSelectedObjects();
+            updateSelectedObjects(obj);
+            tool = "textEdit";
+        }
+        
+            
+        else if(tool === "drag"){
+            objects.forEach((object,index) =>{
+                let x = event.clientX;
+                let y = event.clientY;
+                lastMousePos = [event.clientX, event.clientY];
+                if(object.isInShape(x,y)){
+                    updateSelectedObjects(object, index)
+                } 
+            })
+        }
+        else if(tool === "select"){
+            resetBoundingBoxCoords();
+            resetSelectedObjects();
+        }
+        updateState(event, true);
     }
 
     const handleMouseUp = (event) =>{
         if(event.button === 0 && tool === "moveCanvas") document.body.style.cursor = 'grab';
+
+        updateState(event, false)
     }
 
     const handleMouseWheel = (event) =>{
@@ -387,6 +342,11 @@ function Canvas(){
             return
         } 
 
+        if(multiplayer && pushIntoDB){
+            currentDrawingIndex = values.length;
+            values.push(objects[objects.length - 1])
+            pushIntoDB = false
+        } 
         let x = event.clientX; //current x position of the cursor
         let y = event.clientY; //current y position of the cursor
 
@@ -399,43 +359,58 @@ function Canvas(){
                 object.x2 = Math.max(x, object.x2)
                 object.y2 = Math.max(y, object.y2)
             }
-                
+
+            if(multiplayer) values[currentDrawingIndex] = object;
+            setCanvas(sessionID, values)
         }
 
         else if(drawingTools.includes(tool)){
             let object = objects[objects.length - 1];
             object.x2 = x;
             object.y2 = y;
+
+            if(multiplayer) values[currentDrawingIndex] = object;
+            setCanvas(sessionID, values)
         }
         else if(tool === "eraser"){
             let i = 0
-            while(i < objects.length){
-                let object = objects[i];
+            let current = multiplayer ? values : objects
+            while(i < current.length){
+                let object
+                if(!multiplayer) object = objects[i];
+                else object = returnObjectByDB(values[i])
+
                 if(object.isInShape(x,y)){
-                    objects.splice(i, 1);
+                    current.splice(i, 1);
                     object = null;
-                    setCanvas(sessionID, objects)
                     //socket.emit("eraseDrawing", i)
                     break;
                 }
                 
                 i++;
             }
+            if(multiplayer) setCanvas(sessionID, values)
         }
         else if(tool === "drag"){
-            selectedObjects.forEach(obj =>{
+            selectedObjects.forEach((obj, i) =>{
                 //responsible for moving the objects
                 obj.x1 += x - lastMousePos[0];
                 obj.x2 += x - lastMousePos[0];
                 obj.y1 += y - lastMousePos[1];
                 obj.y2 += y - lastMousePos[1];
+
+                values[selectedObjectsIndices[i]] = obj;
             })
+            setCanvas(sessionID, values);
         }
         else if(tool === "select"){
             let i = 0
-            while(i < objects.length){
-                let object = objects[i];
-                if(object.isInShape(x,y) && !selectedObjects.includes(object)){
+            let current = multiplayer ? values : objects
+            while(i < current.length){
+                let object
+                if(!multiplayer) object = objects[i];
+                else object = returnObjectByDB(values[i])
+                if(object.isInShape(x,y) && !selectedObjectsIndices.includes(i)){
                     updateSelectedObjects(object, i);
 
                     if (object.x1 < minx) minx = object.x1
@@ -454,13 +429,17 @@ function Canvas(){
             if(dragingCoordsIndex == []) return
 
 
-            selectedObjects.forEach(obj =>{
+            selectedObjects.forEach((obj, i) =>{
                 obj.resize(dragingCoordsIndex, [lastMousePos[0], lastMousePos[1], x ,y], boundingBox)
-                //obj.setCoordinateByIndex(dragingCoordsIndex[1], (y - lastMousePos[1]), boundingBox)
+                values[selectedObjectsIndices[i]] = obj;
+                
             })
 
             boundingBox[dragingCoordsIndex[0]] += x - lastMousePos[0];
             boundingBox[dragingCoordsIndex[1]] += y - lastMousePos[1];
+
+            if(multiplayer) setCanvas(sessionID, values);
+            
         }
         
         else if(tool == "moveCanvas"){
@@ -479,10 +458,7 @@ function Canvas(){
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
         if(multiplayer){
             values.forEach((object) =>{
-                let additionalInfo
-                if(object.type == "pen") 
-                    additionalInfo = [object.lines, object.scalex, object.scaley, object.initialWidth, object.initialHeight];
-                returnObjectByTool(object.x1, object.y1, object.type, object.x2, object.y2, additionalInfo).draw(ctx, addedOffset)
+                returnObjectByDB(object).draw(ctx, addedOffset)
             })
         }
         else{
