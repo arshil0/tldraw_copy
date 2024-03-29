@@ -303,7 +303,9 @@ function Canvas(){
         
             
         else if(tool === "drag"){
-            objects.forEach((object,index) =>{
+            let current = multiplayer ? values : objects
+            current.forEach((object,index) =>{
+                if(multiplayer) object = returnObjectByDB(object);
                 let x = event.clientX;
                 let y = event.clientY;
                 lastMousePos = [event.clientX, event.clientY];
@@ -399,9 +401,9 @@ function Canvas(){
                 obj.y1 += y - lastMousePos[1];
                 obj.y2 += y - lastMousePos[1];
 
-                values[selectedObjectsIndices[i]] = obj;
+                if(multiplayer) values[selectedObjectsIndices[i]] = obj;
             })
-            setCanvas(sessionID, values);
+            if(multiplayer) setCanvas(sessionID, values);
         }
         else if(tool === "select"){
             let i = 0
