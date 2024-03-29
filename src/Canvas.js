@@ -49,6 +49,7 @@ const drawingTools = ["pen", "rectangle", "ellipse"]; //a list of tools that dra
 
 
 let boundingBox = [-1,-1,0,0] // topLeft x, topLeft y, bottomRight x, bottomRight y
+let visibleBoundingBox = false;
 var dragingCoordsIndex = []; //stores 2 indices (x,y) for which coordinates of an object to move while dragging and resizing ex. (0,3) will move the left-bottom coordinates of a box
 var minx = 9999999999999; //top left x of bounding box
 var miny = 9999999999999; //top left y of bounding box
@@ -125,8 +126,9 @@ export function resize(state){
     }
     else return
     tool = "resize"
+    toolActivated = true;
+    visibleBoundingBox = false;
 }
-
 
 // returns a drawing object depending on the current tool (having the "rectangle" tool will return a new rectangle object)
 function returnObjectByTool(x, y, currentTool = tool, x2 = x, y2=y, additionalInfo = undefined){
@@ -257,8 +259,8 @@ function Canvas(){
                     })
                     tool = "select";
                     boundingBox = updateCoords(boundingBox);
-                    //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
-
+                    visibleBoundingBox = true;
+                    updateCanvas(1 - c);
                 }
             }
         }
@@ -315,6 +317,7 @@ function Canvas(){
             })
         }
         else if(tool === "select"){
+            visibleBoundingBox = true;
             resetBoundingBoxCoords();
             resetSelectedObjects();
         }
@@ -429,14 +432,13 @@ function Canvas(){
         }
         else if(tool === "resize"){
             if(dragingCoordsIndex == []) return
-
+            
 
             selectedObjects.forEach((obj, i) =>{
                 obj.resize(dragingCoordsIndex, [lastMousePos[0], lastMousePos[1], x ,y], boundingBox)
                 values[selectedObjectsIndices[i]] = obj;
                 
             })
-
             boundingBox[dragingCoordsIndex[0]] += x - lastMousePos[0];
             boundingBox[dragingCoordsIndex[1]] += y - lastMousePos[1];
 
@@ -477,7 +479,7 @@ function Canvas(){
             <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onWheel={handleMouseWheel}></canvas>
             
             {(tool === "select" || tool === "resize") &&
-            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])}></BoundingBox>
+            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])} visible = {visibleBoundingBox}></BoundingBox>
             }
             
         </>
