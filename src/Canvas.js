@@ -230,7 +230,7 @@ function Canvas(){
                     let current = multiplayer ? values : objects
                     let object
                     if(!multiplayer) object = objects[objects.length - 1];
-                    else object = returnObjectByDB(values[values.length - 1])
+                    else object = returnObjectByDB(values[currentDrawingIndex])
                     
                     if (object.lines.length <= 1){
                         current.pop();
@@ -239,7 +239,7 @@ function Canvas(){
                         
                     object.initialize();
                     if(multiplayer){
-                        values[values.length-1] = object;
+                        values[currentDrawingIndex] = object;
                         setCanvas(sessionID, values);
                     }
                 }
@@ -388,7 +388,6 @@ function Canvas(){
                 if(object.isInShape(x,y)){
                     current.splice(i, 1);
                     object = null;
-                    //socket.emit("eraseDrawing", i)
                     break;
                 }
                 
@@ -462,7 +461,8 @@ function Canvas(){
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
         if(multiplayer){
             values.forEach((object) =>{
-                returnObjectByDB(object).draw(ctx, addedOffset)
+                if(object != undefined)
+                    returnObjectByDB(object).draw(ctx, addedOffset)
             })
         }
         else{
