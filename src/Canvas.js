@@ -1,3 +1,4 @@
+import "./canvas.css"
 import {useEffect, useState, useLayoutEffect } from "react";
 import BoundingBox from './boundingBox.js';
 import { boundingBoxOffset } from "./boundingBox.js";
@@ -21,7 +22,6 @@ var selectedObjectsIndices = []; //list of indices for currently selected object
 var lastMousePos = []; //the position of the mouse before moving the cursor (used for updating movement)
 
 var offset = [0,0]; //offset of the canvas
-var addedOffset = [0,0]; //by how much did the offset change, to update corresponding objects
 
 var multiplayer = false; //decides whether to interact with firebase's database or not 
 var sessionID = ""; //the session id of the multiplayer server
@@ -53,8 +53,8 @@ let visibleBoundingBox = false;
 var dragingCoordsIndex = []; //stores 2 indices (x,y) for which coordinates of an object to move while dragging and resizing ex. (0,3) will move the left-bottom coordinates of a box
 var minx = 9999999999999; //top left x of bounding box
 var miny = 9999999999999; //top left y of bounding box
-var maxx = -1; //bottom right x of bounding box
-var maxy = -1; //bottom right y of bounding box
+var maxx = -9999999999999; //bottom right x of bounding box
+var maxy = -9999999999999; //bottom right y of bounding box
 
 
 export function setTool(newTool){
@@ -82,8 +82,6 @@ function updateSelectedObjects(object, index){
 function updateOffset(x, y){
     offset[0] += x;
     offset[1] += y;
-    addedOffset[0] += x;
-    addedOffset[1] += y;
 }
 
 //deselects all objects
@@ -95,9 +93,9 @@ function resetSelectedObjects(){
 function resetBoundingBoxCoords(){
     minx = 9999999999999; //top left x of bounding box
     miny = 9999999999999; //top left y of bounding box
-    maxx = -1; //bottom right x of bounding box
-    maxy = -1; //bottom right y of bounding box
-    boundingBox = [-100,-100, 0, 0]
+    maxx = -9999999999999; //bottom right x of bounding box
+    maxy = -9999999999999; //bottom right y of bounding box
+    boundingBox = [-100 - offset[0],-100 - offset[1], 0 - offset[0], 0 - offset[1]]
 }
 
 //update coordinates of an object so that: x1,y1 = top left corner of bounding box,     x2,y2 = bottom right corner of bounding box
@@ -186,7 +184,11 @@ window.addEventListener("keyup", (event) =>{
 //takes a string "URL" and checks if multiplayer should be on (the website is followed by a / (numbers) )
 const isMultiplayer = (URL) =>{
     let c = URL.charAt(URL.length - 1);
-    if (c in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] || c == '#') return true;
+    if (c in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']) return true;
+    if (c == '#'){
+        if (URL.charAt(URL.length - 2) == '/') return false;
+        return true;
+    }
     return false
 }
 
@@ -237,14 +239,21 @@ function Canvas(){
                         shouldInsertNewDrawing = false;
                     }
                         
-                    object.initialize();
+                    object.initialize(offset);
                     if(multiplayer){
                         values[currentDrawingIndex] = object;
                         setCanvas(sessionID, values);
                     }
                 }
                 else if(drawingTools.includes(tool)){
-                    objects[objects.length - 1].updateCoords();
+                    let object
+                    if(!multiplayer) object = objects[objects.length - 1];
+                    else object = returnObjectByDB(values[currentDrawingIndex])
+                    object.updateCoords();
+                    if(multiplayer){
+                        values[currentDrawingIndex] = object;
+                        setCanvas(sessionID, values);
+                    }
                 }
                 else if(tool === "drag"){
                     //socket.emit("adjustDrawings", selectedObjects, selectedObjectsIndices, offset)
@@ -291,7 +300,7 @@ function Canvas(){
         if(event.button === 0 && tool === "moveCanvas") document.body.style.cursor = 'grabbing';
 
         if(drawingTools.includes(tool)){
-            objects.push(returnObjectByTool(event.clientX, event.clientY));
+            objects.push(returnObjectByTool(event.clientX - offset[0], event.clientY - offset[1]));
             if(multiplayer) pushIntoDB = true
         }
     
@@ -311,7 +320,7 @@ function Canvas(){
                 let x = event.clientX;
                 let y = event.clientY;
                 lastMousePos = [event.clientX, event.clientY];
-                if(object.isInShape(x,y)){
+                if(object.isInShape(x,y, offset)){
                     updateSelectedObjects(object, index)
                 } 
             })
@@ -349,7 +358,8 @@ function Canvas(){
 
         if(multiplayer && pushIntoDB){
             currentDrawingIndex = values.length;
-            values.push(objects[objects.length - 1])
+            let obj = objects[objects.length - 1];
+            values.push(obj)
             pushIntoDB = false
         } 
         let x = event.clientX; //current x position of the cursor
@@ -357,12 +367,16 @@ function Canvas(){
 
         if(tool === "pen"){
             let object = objects[objects.length - 1];
+            
             if(object.lines.length === 0 || object.distance(object.lines[object.lines.length - 1], [x,y]) > 10){
-                object.lines.push([x, y])
-                object.x1 = Math.min(x, object.x1)
-                object.y1 = Math.min(y, object.y1)
-                object.x2 = Math.max(x, object.x2)
-                object.y2 = Math.max(y, object.y2)
+                object.lines.push([x - offset[0], y - offset[1]])
+                console.log(object.x1, object.x2, object.y1, object.y2);
+                object.x1 = Math.min(x - offset[0], object.x1) 
+                object.y1 = Math.min(y - offset[1], object.y1) 
+                object.x2 = Math.max(x - offset[0], object.x2)
+                object.y2 = Math.max(y - offset[1], object.y2)
+                console.log(object.x1, object.x2, object.y1, object.y2);
+                console.log("");
             }
 
             if(multiplayer) values[currentDrawingIndex] = object;
@@ -371,8 +385,8 @@ function Canvas(){
 
         else if(drawingTools.includes(tool)){
             let object = objects[objects.length - 1];
-            object.x2 = x;
-            object.y2 = y;
+            object.x2 = x - offset[0];
+            object.y2 = y - offset[1];
 
             if(multiplayer) values[currentDrawingIndex] = object;
             setCanvas(sessionID, values)
@@ -385,7 +399,7 @@ function Canvas(){
                 if(!multiplayer) object = objects[i];
                 else object = returnObjectByDB(values[i])
 
-                if(object.isInShape(x,y)){
+                if(object.isInShape(x,y, offset)){
                     current.splice(i, 1);
                     object = null;
                     break;
@@ -414,7 +428,7 @@ function Canvas(){
                 let object
                 if(!multiplayer) object = objects[i];
                 else object = returnObjectByDB(values[i])
-                if(object.isInShape(x,y) && !selectedObjectsIndices.includes(i)){
+                if(object.isInShape(x,y, offset) && !selectedObjectsIndices.includes(i)){
                     updateSelectedObjects(object, i);
 
                     if (object.x1 < minx) minx = object.x1
@@ -435,7 +449,7 @@ function Canvas(){
 
             selectedObjects.forEach((obj, i) =>{
                 obj.resize(dragingCoordsIndex, [lastMousePos[0], lastMousePos[1], x ,y], boundingBox)
-                values[selectedObjectsIndices[i]] = obj;
+                if(multiplayer) values[selectedObjectsIndices[i]] = obj;
                 
             })
             boundingBox[dragingCoordsIndex[0]] += x - lastMousePos[0];
@@ -456,30 +470,45 @@ function Canvas(){
     useLayoutEffect(() => {
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
-        if(addedOffset[0] == 0 && addedOffset[1] == 0) addedOffset = undefined;
         ctx.fillStyle = "green";
         ctx.clearRect(0,0,window.innerWidth, window.innerHeight)
         if(multiplayer){
             values.forEach((object) =>{
                 if(object != undefined)
-                    returnObjectByDB(object).draw(ctx, addedOffset)
+                    returnObjectByDB(object).draw(ctx, offset)
             })
         }
         else{
             objects.forEach((object) =>{
-                object.draw(ctx, addedOffset);
+                object.draw(ctx, offset);
             })
         }
-        
-        addedOffset = [0,0];
     });
+
+    const handleTouchStart = (event) =>{
+        event.clientX = event.touches[0].clientX;
+        event.clientY = event.touches[0].clientY;
+        event.button = 0;
+        handleMouseDown(event);
+    }
+
+    const handleTouchMove = (event) =>{
+        event.clientX = event.touches[0].clientX;
+        event.clientY = event.touches[0].clientY;
+        handleMouseMove(event);
+    }
+
+    const handleTouchEnd = (event) =>{
+        event.button = 0;
+        handleMouseUp(event);
+    }
 
     return(
         <>
-            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onWheel={handleMouseWheel}></canvas>
+            <canvas id="canvas" width={window.innerWidth} height={window.innerHeight} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onWheel={handleMouseWheel} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} ></canvas>
             
             {(tool === "select" || tool === "resize") &&
-            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2])} y={Math.min(boundingBox[1], boundingBox[3])} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])} visible = {visibleBoundingBox}></BoundingBox>
+            <BoundingBox x ={Math.min(boundingBox[0], boundingBox[2]) + offset[0]} y={Math.min(boundingBox[1], boundingBox[3]) + offset[1]} width={Math.abs(boundingBox[2] - boundingBox[0])} height={Math.abs(boundingBox[3] - boundingBox[1])} visible = {visibleBoundingBox}></BoundingBox>
             }
             
         </>

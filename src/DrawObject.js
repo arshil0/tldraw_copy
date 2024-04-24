@@ -1,4 +1,5 @@
 //THIS FILE CONTAINS ALL FUNCTIONS, VARIABLES NECESSARY FOR DRAWING SOMETHING (example: square, circle, pen, etc...)
+import { off } from "firebase/database";
 import "./specialObjects/text.css"
 
 class DrawObject{
@@ -99,20 +100,16 @@ class DrawObject{
         
         
     }
-
-    changeOffset(offset){
-        this.x1 += offset[0];
-        this.x2 += offset[0];
-        this.y1 += offset[1];
-        this.y2 += offset[1];
-    }
-
     
 
     //given a coordinate point, check if its in the current shape (abstract function)
-    isInShape(x, y){
+    isInShape(x, y, offset){
+        let x1 = this.x1 + offset[0];
+        let x2 = this.x2 + offset[0];
+        let y1 = this.y1 + offset[1];
+        let y2 = this.y2 + offset[1];
         if(this.x1 > this.x2 || this.y1 > this.y2) this.updateCoords();
-        return x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2
+        return x >= x1 && x <= x2 && y >= y1 && y <= y2
     }
 
     //draw this object on screen (abstract function)
@@ -138,7 +135,7 @@ export class Pen extends DrawObject{
         }
     }
 
-    initialize(){
+    initialize(offset){
         //update these values after finishing drawing
         this.initialWidth = this.x2 - this.x1; 
         this.initialHeight = this.y2 - this.y1;
@@ -151,8 +148,12 @@ export class Pen extends DrawObject{
     }
 
     //given a coordinate point, check if its in the current shape
-    isInShape(x, y){
-        if(x >= this.x1 && x <= this.x2 && y >= this.y1 && y <= this.y2){
+    isInShape(x, y, offset){
+        let x1 = this.x1 + offset[0];
+        let x2 = this.x2 + offset[0];
+        let y1 = this.y1 + offset[1];
+        let y2 = this.y2 + offset[1];
+        if(x >= x1 && x <= x2 && y >= y1 && y <= y2){
             /*this.lines.forEach(coordinate => {
                 console.log(this.distance([x,y], coordinate));
                 if(this.distance([x,y], coordinate) < 10) return true;
@@ -165,10 +166,14 @@ export class Pen extends DrawObject{
 
     draw(ctx, offset){
         this.updateCoords();
-        if(offset != undefined) this.changeOffset(offset);
         ctx.beginPath();
-        let startX = this.initialWidth == 0 ? 0 : (this.scalex >= 0 ? this.x1 : this.x2);
-        let startY = this.initialHeight == 0 ? 0 : (this.scaley >= 0 ? this.y1 : this.y2);
+        let x1 = this.x1 + offset[0];
+        let x2 = this.x2 + offset[0];
+        let y1 = this.y1 + offset[1];
+        let y2 = this.y2 + offset[1];
+
+        let startX = this.initialWidth == 0 ? offset[0] : (this.scalex >= 0 ? x1 : x2);
+        let startY = this.initialHeight == 0 ? offset[1] : (this.scaley >= 0 ? y1 : y2);
         ctx.moveTo(startX + this.lines[0][0] * this.scalex, startY + this.lines[0][1] * this.scaley);
         this.lines.forEach(coordinate => {
             ctx.lineTo(startX + coordinate[0] * this.scalex, startY + coordinate[1] * this.scaley);
@@ -226,8 +231,12 @@ export class Rectangle extends DrawObject {
     }
 
     draw(ctx, offset){
-        if(offset != undefined) this.changeOffset(offset);
-        ctx.strokeRect(this.x1, this.y1, this.x2 - this.x1, this.y2 - this.y1)
+        let x1 = this.x1 + offset[0];
+        let x2 = this.x2 + offset[0];
+        let y1 = this.y1 + offset[1];
+        let y2 = this.y2 + offset[1];
+
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
     }
 
 }
@@ -238,9 +247,12 @@ export class Ellipse extends DrawObject{
     }
 
     draw(ctx, offset){
-        if(offset != undefined) this.changeOffset(offset);
+        let x1 = this.x1 + offset[0];
+        let x2 = this.x2 + offset[0];
+        let y1 = this.y1 + offset[1];
+        let y2 = this.y2 + offset[1];
         ctx.beginPath();
-        ctx.ellipse((this.x1 + this.x2) / 2, (this.y1 + this.y2)/2, Math.abs(this.x2 - this.x1) / 2, Math.abs(this.y2 - this.y1) / 2, 0, 0, Math.PI * 2);
+        ctx.ellipse((x1 + x2) / 2, (y1 + y2)/2, Math.abs(x2 - x1) / 2, Math.abs(y2 - y1) / 2, 0, 0, Math.PI * 2);
         ctx.stroke();
     }
 }
