@@ -59,6 +59,8 @@ var maxy = -9999999999999; //bottom right y of bounding box
 
 export function setTool(newTool){
     tool = newTool;
+    if(newTool === "moveCanvas") document.body.style.cursor = 'grab'
+    else document.body.style.cursor = '';
 }
 
 export function convertToMultiplayer(){
@@ -512,7 +514,6 @@ function Canvas(){
             }
             
         </>
-        
     )
 }
 

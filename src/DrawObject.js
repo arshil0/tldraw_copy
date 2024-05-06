@@ -251,6 +251,7 @@ export class Ellipse extends DrawObject{
         let x2 = this.x2 + offset[0];
         let y1 = this.y1 + offset[1];
         let y2 = this.y2 + offset[1];
+        
         ctx.beginPath();
         ctx.ellipse((x1 + x2) / 2, (y1 + y2)/2, Math.abs(x2 - x1) / 2, Math.abs(y2 - y1) / 2, 0, 0, Math.PI * 2);
         ctx.stroke();

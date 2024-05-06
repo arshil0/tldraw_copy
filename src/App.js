@@ -34,10 +34,9 @@ const toolList = {
     name: "select"
   },
 
-  /*
   move: {
     name: "moveCanvas"
-  }*/
+  }
 }
 
 function App() {
